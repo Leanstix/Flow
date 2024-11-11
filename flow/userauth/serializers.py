@@ -13,39 +13,25 @@ class InterestSerializer(serializers.ModelSerializer):
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    interests = serializers.PrimaryKeyRelatedField(queryset=Interest.objects.all(), many=True)
 
     class Meta:
         model = User
-        fields = [
-            'email', 'first_name', 'last_name', 'gender', 'phone_number', 'university_id',
-            'department', 'year_of_study', 'bio', 'profile_picture', 'password', 'interests'
-        ]
+        fields = ['email', 'university_id', 'password']
 
     def create(self, validated_data):
-        # Pop password and interests from validated_data
+        # Pop password from validated_data
         password = validated_data.pop('password')
-        interests = validated_data.pop('interests')
-        
+
         # Create user instance
         user = User(**validated_data)
         user.set_password(password)
         user.save()
-        
-        # Set user interests
-        user.interests.set(interests)
 
-        # Send activation email
-        activation_url = f"http://yourfrontend.com/activate?token={user.activation_token}"
-        send_mail(
-            'Activate your account',
-            f'Click the link to activate your account: {activation_url}',
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
-        )
-        
-        return user  # <-- The `return` statement was previously outside of the function
+       # Print activation link in terminal for testing instead of sending an email
+        activation_url = f"http://localhost:3000/activate?token={user.activation_token}"
+        print(f"Activation link (copy and paste in browser to activate): {activation_url}")
+
+        return user
 
 class UserActivationSerializer(serializers.Serializer):
     token = serializers.CharField()
@@ -72,15 +58,15 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'gender', 'phone_number', 'department',
             'year_of_study', 'bio', 'profile_picture', 'interests'
         ]
-        read_only_fields = ['email', 'university_id']
+        read_only_fields = ['email', 'university_id']  # Prevent changes to email and university_id
 
     def update(self, instance, validated_data):
         interests = validated_data.pop('interests', None)
         instance = super().update(instance, validated_data)
-        
+
         # Update interests if provided
-        if interests:
+        if interests is not None:
             instance.interests.set(interests)
-        
+
         instance.save()
         return instance
