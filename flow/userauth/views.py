@@ -20,6 +20,8 @@ class UserRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserActivationView(APIView):
+    permission_classes = [AllowAny]  # This allows unauthenticated users to access this endpoint
+
     def post(self, request):
         serializer = UserActivationSerializer(data=request.data)
         if serializer.is_valid():

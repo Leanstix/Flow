@@ -35,7 +35,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
 }
 
@@ -44,6 +44,22 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Application definition
+
+AUTHENTICATION_BACKENDS = [
+    'login.auth_backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -57,6 +73,8 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework.authtoken',
     'corsheaders',
+    'login',
+    'messaging',
 ]
 
 MIDDLEWARE = [

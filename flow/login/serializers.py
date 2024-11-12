@@ -11,16 +11,14 @@ class LoginSerializer(serializers.Serializer):
         password = data.get('password')
 
         if email and password:
-            # Attempt to authenticate the user with provided credentials
+            # Authenticate user with provided credentials
             user = authenticate(username=email, password=password)
             if user:
-                # Ensure the user is active
+                # Check if the user is active
                 if not user.is_active:
                     raise AuthenticationFailed("This account is inactive.")
-                data['user'] = user
+                return {'user': user}  # Return the authenticated user object
             else:
                 raise AuthenticationFailed("Invalid email or password.")
         else:
             raise serializers.ValidationError("Must include 'email' and 'password'")
-        
-        return data
