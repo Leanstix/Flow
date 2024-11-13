@@ -7,7 +7,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username']
+        fields = ['id', 'email']  # Updated to use 'email' instead of 'username'
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)

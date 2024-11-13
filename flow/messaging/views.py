@@ -13,15 +13,24 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Conversation.objects.none()
         return Conversation.objects.filter(participants=self.request.user)
 
     @action(detail=True, methods=['post'])
     def send_message(self, request, pk=None):
         conversation = self.get_object()
+        content = request.data.get('content')
+        if not content:
+            return Response(
+                {"error": "Content cannot be empty"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         message = Message(
             conversation=conversation,
             sender=request.user,
-            content=request.data.get('content')
+            content=content
         )
         message.save()
         return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
@@ -31,8 +40,10 @@ class MessageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Message.objects.none()
         return Message.objects.filter(conversation__participants=self.request.user)
-    
+
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):
         message = self.get_object()
