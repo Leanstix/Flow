@@ -1,9 +1,11 @@
-import random
-import string
+import os
+from PIL import Image  # Import Pillow
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 from django.core.validators import RegexValidator, EmailValidator
 from django.utils.crypto import get_random_string
+from django.conf import settings
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, university_id, password=None, **extra_fields):
@@ -32,6 +34,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Superuser must have is_superuser=True.")
 
         return self.create_user(email, university_id, password, **extra_fields)
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     # Constants for choices
@@ -81,19 +84,34 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Managers
     objects = CustomUserManager()
 
-    # Field definitions for Django auth
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['university_id']  # Only university_id is required besides email and password
+    REQUIRED_FIELDS = ['university_id'] 
 
     def __str__(self):
         return f"{self.email}"
 
     def save(self, *args, **kwargs):
-        # Generate an activation token if the account is new and not yet verified
-        if not self.pk:  # Only generate the token when the user is first created
+        if not self.pk:  
             if not self.activation_token and not self.email_verified:
                 self.activation_token = get_random_string(32)
+
         super().save(*args, **kwargs)
+
+        if self.profile_picture:
+            self.resize_profile_picture()
+
+    def resize_profile_picture(self):
+        """Resize the profile picture to a standard size and optimize it."""
+        picture_path = self.profile_picture.path
+        try:
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+
+                img.thumbnail((300, 300))
+
+                img.save(picture_path, format='JPEG', optimize=True, quality=85)
+        except Exception as e:
+            print(f"Error processing image: {e}")
 
     def activate_account(self):
         """Activate the user's account."""
@@ -101,6 +119,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.email_verified = True
         self.activation_token = None
         self.save(update_fields=['is_active', 'email_verified', 'activation_token'])
+
 
 class Interest(models.Model):
     """Model to store user interests for feed customization."""
