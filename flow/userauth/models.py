@@ -45,6 +45,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, validators=[EmailValidator()])
     first_name = models.CharField(max_length=50, blank=True, null=True)
     last_name = models.CharField(max_length=50, blank=True, null=True)
+    user_name = models.CharField(max_length=50, blank=True, null=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
     phone_number = models.CharField(
         max_length=15,
@@ -104,11 +105,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Resize the profile picture to a standard size and optimize it."""
         picture_path = self.profile_picture.path
         try:
+            with Image.open(picture_path) as img:
+                # Ensure the image is in RGB format
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
-
+                # Resize and optimize
                 img.thumbnail((300, 300))
-
                 img.save(picture_path, format='JPEG', optimize=True, quality=85)
         except Exception as e:
             print(f"Error processing image: {e}")

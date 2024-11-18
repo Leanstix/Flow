@@ -1,4 +1,6 @@
 from django.urls import path
+from django.conf.urls.static import static
+from django.conf import settings  # Import settings
 from .views import ActivateAccountView, UserRegistrationView, UserActivationView, UserProfileUpdateView
 
 urlpatterns = [
@@ -7,3 +9,6 @@ urlpatterns = [
     path('profile/update/', UserProfileUpdateView.as_view(), name='profile-update'),
     path('activate-account/', ActivateAccountView.as_view(), name='activate-account'),
 ]
+
+if settings.DEBUG:  # Ensure settings is imported before using it
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
