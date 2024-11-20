@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'login',
     'messaging',
+    'posts',
 ]
 
 MIDDLEWARE = [
