@@ -51,6 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=15,
         validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$')],
         blank=True,
+        null=True,
         help_text="Phone number format: +999999999. Up to 15 digits."
     )
 
@@ -60,7 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     year_of_study = models.CharField(max_length=1, choices=YEAR_CHOICES, blank=True, null=True)
 
     # Profile Details
-    bio = models.TextField(blank=True, help_text="Brief bio or description")
+    bio = models.TextField(blank=True, help_text="Brief bio or description", null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     interests = models.ManyToManyField('Interest', blank=True, related_name="interested_users")
 

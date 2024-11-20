@@ -21,22 +21,29 @@ class LoginView(APIView):
             refresh = RefreshToken.for_user(user)
             access = refresh.access_token
             
-            # Ensure fields exist before accessing them
+            # Dynamically build response with only available user fields
             user_data = {
                 "refresh": str(refresh),
                 "access": str(access),
                 "user_id": user.id,
                 "email": user.email,
+            }
+            
+            # Optional fields
+            optional_fields = {
                 "gender": getattr(user, "gender", None),
-                "PhoneNumber": getattr(user, "phone_number", None),
-                "MatricNo": getattr(user, "university_id", None),
+                "phone_number": getattr(user, "phone_number", None),
+                "university_id": getattr(user, "university_id", None),
                 "department": getattr(user, "department", None),
                 "bio": getattr(user, "bio", None),
-                "FirstName": getattr(user, "first_name", None),
-                "LastName": getattr(user, "last_name", None),
-                "UserName": getattr(user, "user_name", None),
-                "Level": getattr(user, "year_of_study", None),
+                "first_name": getattr(user, "first_name", None),
+                "last_name": getattr(user, "last_name", None),
+                "user_name": getattr(user, "user_name", None),
+                "year_of_study": getattr(user, "year_of_study", None),
             }
+            
+            # Filter out None values
+            user_data.update({k: v for k, v in optional_fields.items() if v is not None})
             
             return Response(user_data, status=status.HTTP_200_OK)
         else:
@@ -50,9 +57,14 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
+            # Retrieve refresh token from request body
             refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
             token = RefreshToken(refresh_token)
             token.blacklist()
+
             return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error("Logout failed: %s", str(e))
