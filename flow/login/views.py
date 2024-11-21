@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 import logging
 from .serializers import LoginSerializer
@@ -53,19 +53,23 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
     def post(self, request):
         try:
-            # Retrieve refresh token from request body
-            refresh_token = request.data.get("refresh")
-            if not refresh_token:
-                return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+            # Extract the refresh token from the Authorization header
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return Response({"error": "Refresh token missing or invalid."}, status=status.HTTP_400_BAD_REQUEST)
 
+            refresh_token = auth_header.split(" ")[1]
+            
+            # Debug: Print the received token
+            print("Logout Received Refresh Token:", refresh_token)
+
+            # Attempt to blacklist the token
             token = RefreshToken(refresh_token)
             token.blacklist()
 
             return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error("Logout failed: %s", str(e))
-            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid token or already blacklisted"}, status=status.HTTP_400_BAD_REQUEST)
+        
