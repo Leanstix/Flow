@@ -57,13 +57,14 @@ class LogoutView(APIView):
     def post(self, request):
         try:
             auth_header = request.headers.get("Authorization")
+            print(request)
+            print(auth_header)
             if not auth_header or not auth_header.startswith("Bearer "):
                 return Response({"error": "Refresh token missing or invalid."}, status=status.HTTP_400_BAD_REQUEST)
 
             refresh_token = auth_header.split(" ")[1]
             print("Logout Received Refresh Token:", refresh_token)
 
-            # Validate and blacklist the refresh token
             token = RefreshToken(refresh_token)
 
             if token.get("token_type") != "refresh":

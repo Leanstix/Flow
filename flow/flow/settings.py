@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,6 +31,10 @@ REST_FRAMEWORK = {
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # Your frontend domain
+]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'Authorization',
 ]
 
 # Application definition
