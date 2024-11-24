@@ -56,25 +56,33 @@ class LoginView(APIView):
 class LogoutView(APIView):
     def post(self, request):
         try:
+            # Get the Authorization header
             auth_header = request.headers.get("Authorization")
-            print(request)
-            print(auth_header)
             if not auth_header or not auth_header.startswith("Bearer "):
+                logger.error("No Authorization header or invalid format.")
                 return Response({"error": "Refresh token missing or invalid."}, status=status.HTTP_400_BAD_REQUEST)
 
-            refresh_token = auth_header.split(" ")[1]
-            print("Logout Received Refresh Token:", refresh_token)
+            # Extract the refresh token
+            refresh_token = auth_header.split("Bearer ")[1]
+            logger.info("Received Refresh Token: %s", refresh_token)
 
+            # Validate and blacklist the token
             token = RefreshToken(refresh_token)
 
+            # Ensure the token is a refresh token
             if token.get("token_type") != "refresh":
+                logger.error("Invalid token type: Expected 'refresh', got '%s'", token.get("token_type"))
                 return Response({"error": "Invalid token type."}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Blacklist the token
             token.blacklist()
+            logger.info("Token successfully blacklisted.")
 
             return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
         except TokenError as e:
+            logger.error("Token error during logout: %s", str(e))
             return Response({"error": "Invalid token or already blacklisted"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error("Unexpected error during logout: %s", str(e))
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+                
