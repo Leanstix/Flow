@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'messaging',
     'posts',
     'rest_framework_simplejwt.token_blacklist',
+    'token_generation',
 ]
 
 MIDDLEWARE = [

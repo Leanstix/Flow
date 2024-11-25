@@ -74,7 +74,7 @@ class LogoutView(APIView):
                 logger.error("Invalid token type: Expected 'refresh', got '%s'", token.get("token_type"))
                 return Response({"error": "Invalid token type."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Blacklist the token
+            #Blacklist the token
             token.blacklist()
             logger.info("Token successfully blacklisted.")
 
