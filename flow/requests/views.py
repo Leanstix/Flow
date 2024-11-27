@@ -16,8 +16,8 @@ class SearchUserView(APIView):
         if not query:
             return Response({"error": "Query parameter 'q' cannot be empty."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Use the correct field name for filtering
-        users = User.objects.filter(user_name__icontains=query).exclude(id=request.user.id)
+        # Filter users based on their email
+        users = User.objects.filter(email__icontains=query).exclude(id=request.user.id)
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

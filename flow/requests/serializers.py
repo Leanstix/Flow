@@ -1,11 +1,15 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from .models import FriendRequest
+
+# Dynamically retrieve the custom user model
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name"]
+        # Ensure these fields match your custom user model
+        fields = ["id", "user_name", "email", "first_name", "last_name"]
 
 class FriendRequestSerializer(serializers.ModelSerializer):
     from_user = UserSerializer()
