@@ -63,7 +63,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Profile Details
     bio = models.TextField(blank=True, help_text="Brief bio or description", null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
-    interests = models.ManyToManyField('Interest', blank=True, related_name="interested_users")
+    interests = models.ManyToManyField('Interest', blank=True, max_length=100, related_name="interested_users")
 
     # Account Status
     is_active = models.BooleanField(default=False)  # Account activation via email

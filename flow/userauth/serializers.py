@@ -56,7 +56,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'first_name', 'last_name', 'gender', 'phone_number', 'department',
-            'year_of_study', 'bio', 'profile_picture', 'interests'
+            'year_of_study', 'bio', 'profile_picture', 'interests', 'user_name'
         ]
         read_only_fields = ['email', 'university_id']  # Prevent changes to email and university_id
 

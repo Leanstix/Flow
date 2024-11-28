@@ -18,3 +18,9 @@ class FriendRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = FriendRequest
         fields = ["id", "from_user", "to_user", "timestamp", "accepted"]
+
+class FriendSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        # Adjust fields based on your custom user model
+        fields = ["id", "user_name", "email", "first_name", "last_name"]

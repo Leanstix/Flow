@@ -41,6 +41,7 @@ class LoginView(APIView):
                 "last_name": getattr(user, "last_name", None),
                 "user_name": getattr(user, "user_name", None),
                 "year_of_study": getattr(user, "year_of_study", None),
+                "user_name": getattr(user, "user_name", None),
             }
             
             # Filter out None values

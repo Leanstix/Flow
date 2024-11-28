@@ -1,24 +1,73 @@
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from .models import Post, Like, Comment, Report
+from .serializers import PostSerializer, CommentSerializer
+from django.shortcuts import get_object_or_404
 from rest_framework import status
-from .models import Post
-from .serializers import PostSerializer
 
+# Get or Create Like (Toggle Like)
+@api_view(['POST'])
+def toggle_like(request, post_id):
+    user = request.user
+    post = get_object_or_404(Post, id=post_id)
+
+    like, created = Like.objects.get_or_create(user=user, post=post)
+    if not created:
+        like.delete()  # Unlike if already liked
+        liked = False
+    else:
+        liked = True
+
+    return Response({'liked': liked, 'likes_count': post.likes_count})
+
+# Add Comment to a Post
+@api_view(['POST'])
+def add_comment(request, post_id):
+    user = request.user
+    post = get_object_or_404(Post, id=post_id)
+    serializer = CommentSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(post=post, user=user)
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+# Repost a Post (Create a new post from an existing one)
+@api_view(['POST'])
+def repost(request, post_id):
+    user = request.user
+    post = get_object_or_404(Post, id=post_id)
+    new_post = Post.objects.create(user=user, content=post.content, reposted_from=post)
+    return Response(PostSerializer(new_post).data, status=201)
+
+# Report a Post
+@api_view(['POST'])
+def report_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    reason = request.data.get('reason', '')
+    report = Report.objects.create(user=request.user, post=post, reason=reason)
+    return Response({'message': 'Report submitted successfully'}, status=201)
+
+# Get all Posts by the authenticated user
 class PostView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Fetch posts only created by the authenticated user
         user_posts = Post.objects.filter(user=request.user).order_by("-created_at")
         serializer = PostSerializer(user_posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        print("POST data:", request.data)  # Log request data
         serializer = PostSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        print("Errors:", serializer.errors)  # Log validation errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def get_comments(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    comments = post.comments.all().order_by("-created_at")  # Fetch all comments for the post
+    serializer = CommentSerializer(comments, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
