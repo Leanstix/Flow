@@ -6,6 +6,7 @@ from .models import Post, Like, Comment, Report
 from .serializers import PostSerializer, CommentSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 
 # Get or Create Like (Toggle Like)
 @api_view(['POST'])
@@ -65,9 +66,22 @@ class PostView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class CommentPagination(PageNumberPagination):
+    page_size = 10  # Default number of comments per page
+    page_size_query_param = "limit"  # 
+
 @api_view(['GET'])
 def get_comments(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.all().order_by("-created_at")  # Fetch all comments for the post
-    serializer = CommentSerializer(comments, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    """
+    Fetch comments for a specific post.
+    Supports pagination with 'limit' and 'page' query parameters.
+    """
+    post = get_object_or_404(Post, id=post_id)  # Ensure the post exists
+    comments = post.comments.all().order_by("-created_at")  # Fetch comments ordered by newest first
+
+    # Paginate the results
+    paginator = CommentPagination()
+    paginated_comments = paginator.paginate_queryset(comments, request)
+    serializer = CommentSerializer(paginated_comments, many=True)
+    
+    return paginator.get_paginated_response(serializer.data)

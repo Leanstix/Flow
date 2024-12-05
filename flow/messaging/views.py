@@ -36,17 +36,18 @@ class ConversationViewSet(viewsets.ModelViewSet):
         return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
 class MessageViewSet(viewsets.ModelViewSet):
+    queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return Message.objects.none()
-        return Message.objects.filter(conversation__participants=self.request.user)
-
-    @action(detail=True, methods=['post'])
-    def mark_as_read(self, request, pk=None):
-        message = self.get_object()
-        message.is_read = True
-        message.save()
-        return Response({"status": "Message marked as read"}, status=status.HTTP_200_OK)
+    def perform_create(self, serializer):
+        conversation_id = self.request.data.get('conversation')  # Get conversation ID from the request
+        if not conversation_id:
+            raise serializers.ValidationError({"conversation": "This field is required."})
+        
+        try:
+            conversation = Conversation.objects.get(id=conversation_id)
+        except Conversation.DoesNotExist:
+            raise serializers.ValidationError({"conversation": "Invalid conversation ID."})
+        
+        serializer.save(sender=self.request.user, conversation=conversation)
