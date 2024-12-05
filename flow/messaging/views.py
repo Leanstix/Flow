@@ -16,6 +16,13 @@ class ConversationViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Conversation.objects.none()
         return Conversation.objects.filter(participants=self.request.user)
+    
+    @action(detail=True, methods=['get'])
+    def messages(self, request, pk=None):
+        conversation = self.get_object()
+        messages = Message.objects.filter(conversation=conversation).order_by('timestamp')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def send_message(self, request, pk=None):
