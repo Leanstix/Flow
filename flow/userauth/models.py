@@ -63,8 +63,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Profile Details
     bio = models.TextField(blank=True, help_text="Brief bio or description", null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
-    interests = models.CharField('Interest', blank=True, max_length=225, null=True)
-
+    interests = models.JSONField('Interests', blank=True, null=True)
     # Account Status
     is_active = models.BooleanField(default=False)  # Account activation via email
     is_staff = models.BooleanField(default=False)   # Staff status for admin access
@@ -111,7 +110,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
                 # Resize and optimize
-                img.thumbnail((300, 300))
+                img.thumbnail((400, 400))
                 img.save(picture_path, format='JPEG', optimize=True, quality=85)
         except Exception as e:
             print(f"Error processing image: {e}")

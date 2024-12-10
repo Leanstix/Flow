@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 import logging
 from .serializers import LoginSerializer
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ class LoginView(APIView):
                 "user_name": getattr(user, "user_name", None),
                 "year_of_study": getattr(user, "year_of_study", None),
                 "user_name": getattr(user, "user_name", None),
+                "profile_picture": (
+                    f"{settings.MEDIA_URL}{user.profile_picture}" 
+                    if user.profile_picture 
+                    else None
+                ),
             }
             
             # Filter out None values

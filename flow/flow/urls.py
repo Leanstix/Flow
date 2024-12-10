@@ -4,6 +4,8 @@ from drf_yasg import openapi
 from django.urls import path
 from django.contrib import admin
 from django.urls import include
+from django.conf.urls.static import static
+from django.conf import settings
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -29,3 +31,6 @@ urlpatterns = [
     path('api/token/', include('token_generation.urls')),
     path('api/', include('requests.urls'))
 ]
+
+if settings.DEBUG:  # Serve media files only in development
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
