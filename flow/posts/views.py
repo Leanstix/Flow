@@ -65,6 +65,54 @@ class PostView(APIView):
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class SearchPostsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if not query:
+            return Response(
+                {"error": "Query parameter 'q' cannot be empty"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Assuming you're searching for posts based on user attributes or content
+        posts = Post.objects.filter(
+            Q(content__icontains=query) |  # Search in post content
+            Q(user__username__icontains=query)  # Search in the username of the post owner
+        ).exclude(user=request.user)  # Exclude posts by the authenticated user
+
+        paginator = PageNumberPagination()
+        paginated_posts = paginator.paginate_queryset(posts, request)
+        serializer = PostSerializer(paginated_posts, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
+    
+class SearchUserPostsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if not query:
+            return Response(
+                {"error": "Query parameter 'q' cannot be empty"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Filter posts created by the authenticated user and match the query
+        user_posts = Post.objects.filter(
+            user=request.user,
+            content__icontains=query
+        ).order_by("-created_at")  # Order by newest first
+
+        # Paginate the results
+        paginator = PageNumberPagination()
+        paginated_posts = paginator.paginate_queryset(user_posts, request)
+        serializer = PostSerializer(paginated_posts, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
 
 class CommentPagination(PageNumberPagination):
     page_size = 10  # Default number of comments per page

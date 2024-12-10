@@ -24,7 +24,7 @@ class SearchUserView(APIView):
 
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
+    
 class FriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
