@@ -8,6 +8,6 @@ urlpatterns = [
     path("posts/<int:post_id>/comment/", add_comment, name="add_comment"),
     path("posts/<int:post_id>/repost/", repost, name="repost"),
     path("posts/<int:post_id>/report/", report_post, name="report_post"),
-    path("posts/search/", SearchUserPostsView.as_view(), name="search_user_posts"),
-    path("posts/search/", SearchPostsView.as_view(), name="search_posts"),
+    path("posts/search/by-user/", SearchUserPostsView.as_view(), name="search_user_posts"),
+    path("posts/search/not-by-user/", SearchPostsView.as_view(), name="search_posts"),
 ]
