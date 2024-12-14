@@ -66,39 +66,36 @@ class PostView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class CustomPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = "limit"
+
 class SearchPostsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         query = request.query_params.get("q", "").strip()
         if not query:
-            return Response(
-                {"error": "Query parameter 'q' cannot be empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Assuming you're searching for posts based on user attributes or content
-        posts = Post.objects.filter(
-            Q(content__icontains=query) |  # Search in post content
-            Q(user__username__icontains=query)  # Search in the username of the post owner
-        ).exclude(user=request.user)  # Exclude posts by the authenticated user
+            return Response({"error": "Query parameter 'q' cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
 
-        paginator = PageNumberPagination()
-        paginated_posts = paginator.paginate_queryset(posts, request)
+        # Filter posts based on content or username, excluding the current user's posts
+        posts = Post.objects.filter(
+            Q(content__icontains=query) | Q(user__username__icontains=query)
+        ).exclude(user=request.user).order_by("-created_at")
+
+        paginator = CustomPagination()
+        paginated_posts = paginator.paginate_queryset(posts, request, view=self)
         serializer = PostSerializer(paginated_posts, many=True)
-        
+
         return paginator.get_paginated_response(serializer.data)
     
 class SearchUserPostsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         query = request.query_params.get("q", "").strip()
         if not query:
-            return Response(
-                {"error": "Query parameter 'q' cannot be empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Filter posts created by the authenticated user and match the query
         user_posts = Post.objects.filter(
@@ -108,9 +105,11 @@ class SearchUserPostsView(APIView):
 
         # Paginate the results
         paginator = PageNumberPagination()
-        paginated_posts = paginator.paginate_queryset(user_posts, request)
+        paginated_posts = paginator.paginate_queryset(user_posts, request, view=self)  # Note: `view=self`
+
         serializer = PostSerializer(paginated_posts, many=True)
 
+        # Use paginator's built-in response method
         return paginator.get_paginated_response(serializer.data)
 
 
