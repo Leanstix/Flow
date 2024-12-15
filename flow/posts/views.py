@@ -7,6 +7,10 @@ from .serializers import PostSerializer, CommentSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q, F
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 # Get or Create Like (Toggle Like)
 @api_view(['POST'])
@@ -88,7 +92,32 @@ class SearchPostsView(APIView):
         serializer = PostSerializer(paginated_posts, many=True)
 
         return paginator.get_paginated_response(serializer.data)
-    
+
+class FeedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get the authenticated user
+        user = request.user
+
+        # Fetch friends of the user (both sent and received accepted requests)
+        friends = User.objects.filter(
+            Q(sent_requests__to_user=user, sent_requests__accepted=True) |
+            Q(received_requests__from_user=user, received_requests__accepted=True)
+        ).distinct()
+
+        # Include the user's own posts and the posts from friends
+        user_and_friends_posts = Post.objects.filter(
+            Q(user=user) | Q(user__in=friends)
+        ).annotate(
+            engagement=F('likes') + F('comments')  # Calculate engagement as sum of likes and comments
+        ).order_by('-engagement', '-created_at')  # Order by engagement first, then by creation date
+
+        # Serialize the posts
+        serializer = PostSerializer(user_and_friends_posts, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 class SearchUserPostsView(APIView):
     permission_classes = [IsAuthenticated]
 

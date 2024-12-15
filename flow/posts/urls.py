@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import PostView, SearchPostsView, SearchUserPostsView, toggle_like, add_comment, get_comments, repost, report_post
+from .views import PostView, SearchPostsView, SearchUserPostsView, toggle_like, add_comment, get_comments, repost, report_post, FeedView
 
 urlpatterns = [
     path("posts/", PostView.as_view(), name="posts"),
@@ -10,4 +10,5 @@ urlpatterns = [
     path("posts/<int:post_id>/report/", report_post, name="report_post"),
     path("posts/search/by-user/", SearchUserPostsView.as_view(), name="search_user_posts"),
     path("posts/search/not-by-user/", SearchPostsView.as_view(), name="search_posts"),
+    path("posts/feed/", FeedView.as_view(), name="feed"),  # Added endpoint for the feed
 ]
