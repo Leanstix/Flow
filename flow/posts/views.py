@@ -94,23 +94,22 @@ class SearchUserPostsView(APIView):
 
     def get(self, request, *args, **kwargs):
         query = request.query_params.get("q", "").strip()
-        if not query:
-            return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Filter posts created by the authenticated user and match the query
-        user_posts = Post.objects.filter(
-            user=request.user,
-            content__icontains=query
-        ).order_by("-created_at")  # Order by newest first
+        
+        # If query is empty, fetch all posts
+        user_posts = Post.objects.filter(user=request.user)
+        if query:
+            user_posts = user_posts.filter(content__icontains=query)
+        
+        user_posts = user_posts.order_by("-created_at")  # Order by newest first
 
         # Paginate the results
         paginator = PageNumberPagination()
-        paginated_posts = paginator.paginate_queryset(user_posts, request, view=self)  # Note: `view=self`
+        paginated_posts = paginator.paginate_queryset(user_posts, request, view=self)
 
         serializer = PostSerializer(paginated_posts, many=True)
 
-        # Use paginator's built-in response method
         return paginator.get_paginated_response(serializer.data)
+
 
 
 class CommentPagination(PageNumberPagination):

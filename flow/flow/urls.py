@@ -29,7 +29,8 @@ urlpatterns = [
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path("api/", include("posts.urls")),
     path('api/token/', include('token_generation.urls')),
-    path('api/', include('requests.urls'))
+    path('api/', include('requests.urls')),
+    path('api/', include('profiles.urls'))
 ]
 
 if settings.DEBUG:  # Serve media files only in development
