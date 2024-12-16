@@ -125,7 +125,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class Interest(models.Model):
     """Model to store user interests for feed customization."""
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=500, unique=True)
 
     def __str__(self):
         return self.name
