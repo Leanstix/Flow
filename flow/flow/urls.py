@@ -22,6 +22,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/adds/', include('marketplace.urls')),
     path('api/', include('login.urls')),
     path('api/', include('messaging.urls')),
     path('api/', include('userauth.urls')),  # Ensure 'userauth.urls' exists and is correct
@@ -30,7 +31,7 @@ urlpatterns = [
     path("api/", include("posts.urls")),
     path('api/token/', include('token_generation.urls')),
     path('api/', include('requests.urls')),
-    path('api/', include('profiles.urls'))
+    path('api/', include('profiles.urls')),
 ]
 
 if settings.DEBUG:  # Serve media files only in development

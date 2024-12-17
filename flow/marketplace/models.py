@@ -18,9 +18,21 @@ class AdvertisementImage(models.Model):
         return f"Image for {self.advertisement.title}"
 
 class Message(models.Model):
-    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_messages")
-    receiver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="received_messages")
-    advertisement = models.ForeignKey(Advertisement, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="advertisement_sent_messages"  # Unique related_name
+    )
+    receiver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="advertisement_received_messages"  # Unique related_name
+    )
+    advertisement = models.ForeignKey(
+        Advertisement,
+        on_delete=models.CASCADE,
+        related_name="messages"
+    )
     content = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
 

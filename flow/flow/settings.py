@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'token_generation',
     'requests',
     'profiles',
+    'marketplace'
 ]
 
 MIDDLEWARE = [
