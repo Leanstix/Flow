@@ -5,6 +5,8 @@ class Advertisement(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="advertisements")
     title = models.CharField(max_length=255)
     description = models.TextField()
+    price = models.CharField(max_length=8, blank=True, null=True)
+    Image = models.ImageField(upload_to="adverts/", height_field=300, width_field=300, max_length=None, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -12,7 +14,7 @@ class Advertisement(models.Model):
 
 class AdvertisementImage(models.Model):
     advertisement = models.ForeignKey(Advertisement, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="advertisements/images/")
+    image = models.ImageField(upload_to="adverts/")
 
     def __str__(self):
         return f"Image for {self.advertisement.title}"

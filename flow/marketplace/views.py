@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Advertisement, Message
 from .serializers import AdvertisementSerializer, AdvertisementCreateSerializer, MessageSerializer, MessageCreateSerializer
 from django.shortcuts import get_object_or_404
@@ -19,12 +20,12 @@ class AdvertisementListView(APIView):
         advertisements = Advertisement.objects.all().order_by("-created_at")
         serializer = AdvertisementSerializer(advertisements, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 class AdvertisementCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]  # Enable multipart data handling
 
     def post(self, request):
-        serializer = AdvertisementCreateSerializer(data=request.data)
+        serializer = AdvertisementCreateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
