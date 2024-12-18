@@ -15,7 +15,7 @@ class AdvertisementSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Advertisement
-        fields = ["id", "user", "title", "description", "images", "created_at"]
+        fields = ["id", "user", "title", "description", "images", "price", "created_at"]
 
 class AdvertisementCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
@@ -24,7 +24,7 @@ class AdvertisementCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Advertisement
-        fields = ["id", "title", "description", "images"]
+        fields = ["id", "title", "description", "images", "price"]
 
     def create(self, validated_data):
         images = validated_data.pop("images", [])
