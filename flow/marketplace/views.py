@@ -4,8 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Advertisement, Message
-from .serializers import AdvertisementSerializer, AdvertisementCreateSerializer, MessageSerializer, MessageCreateSerializer
+from .serializers import AdvertisementSerializer, ConversationSerializer, ReportSerializer, AdvertisementCreateSerializer, MessageSerializer, MessageCreateSerializer
 from django.shortcuts import get_object_or_404
+import uuid
 
 def get_filtered_messages(user, sent=False):
     """
@@ -43,12 +44,24 @@ class SendMessageView(APIView):
     def post(self, request):
         advertisement = get_object_or_404(Advertisement, id=request.data.get("advertisement_id"))
         content = request.data.get("content")
+        receiver = advertisement.user
+
+        # Check if a conversation already exists
+        existing_message = Message.objects.filter(
+            sender=request.user, receiver=receiver
+        ).first()
+
+        conversation_id = existing_message.conversation_id if existing_message else uuid.uuid4()
+
+        # Create the new message
         Message.objects.create(
+            conversation_id=conversation_id,
             sender=request.user,
-            receiver=advertisement.user,
+            receiver=receiver,
             advertisement=advertisement,
             content=content,
         )
+
         return Response({"message": "Message sent successfully!"}, status=status.HTTP_201_CREATED)
 
 class SellerMessagesView(APIView):
@@ -85,4 +98,22 @@ class CustomerMessagesView(APIView):
     def get(self, request):
         messages = get_filtered_messages(user=request.user, sent=False)
         serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ReportAdvertisementView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ReportSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(reporter=request.user)
+            return Response({"message": "Advertisement reported successfully!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ConversationMessagesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, conversation_id):
+        messages = Message.objects.filter(conversation_id=conversation_id).order_by("sent_at")
+        serializer = ConversationSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

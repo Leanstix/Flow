@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Advertisement, AdvertisementImage, Message
+from .models import Advertisement, AdvertisementImage, Message, Report
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -51,3 +51,21 @@ class MessageCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You cannot send a message to yourself.")
         return data
     
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields = ["id", "reporter", "advertisement", "reason", "reported_at"]
+        read_only_fields = ["id", "reporter", "reported_at"]
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["id", "conversation_id", "sender", "receiver", "advertisement", "content", "sent_at"]
+        read_only_fields = ["id", "conversation_id", "sender", "receiver", "sent_at"]
+
+class ConversationSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True, read_only=True, source='message_set')
+
+    class Meta:
+        model = Message
+        fields = ["conversation_id", "messages"]
