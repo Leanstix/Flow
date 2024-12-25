@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count
 from .models import Message, Conversation
 from .serializers import MessageSerializer, ConversationSerializer
+from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -28,8 +29,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        participants_set = set(map(int, participants))  # Ensure IDs are integers
-        participants_set.add(request.user.id)  # Include the current user
+        participants_set = {request.user.id, *map(int, participants)}  # Include the current user and ensure IDs are integers
 
         if len(participants_set) != 2:
             return Response(
@@ -38,22 +38,23 @@ class ConversationViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            # Check for an existing conversation between the two participants
-            existing_conversations = Conversation.objects.annotate(
+            # Check for an existing conversation with exactly these two participants
+            existing_conversation = Conversation.objects.annotate(
                 participant_count=Count('participants')
             ).filter(
                 participant_count=2,
                 participants__id__in=participants_set
             ).distinct()
 
-            for conversation in existing_conversations:
+            for conversation in existing_conversation:
                 if set(conversation.participants.values_list('id', flat=True)) == participants_set:
+                    # Return the existing conversation
                     return Response(
                         self.get_serializer(conversation).data,
                         status=status.HTTP_200_OK
                     )
 
-            # Create a new conversation
+            # If no existing conversation, create a new one
             conversation = Conversation.objects.create()
             conversation.participants.set(participants_set)
             return Response(

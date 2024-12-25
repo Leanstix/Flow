@@ -77,7 +77,8 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
 
             # Ensure the token is a refresh token
-            if token.get("token_type") != "refresh":
+            
+            if token.get("token_type") != "access":
                 logger.error("Invalid token type: Expected 'refresh', got '%s'", token.get("token_type"))
                 return Response({"error": "Invalid token type."}, status=status.HTTP_400_BAD_REQUEST)
 
