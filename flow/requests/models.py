@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from messaging.models import Conversation
 
 class FriendRequest(models.Model):
     from_user = models.ForeignKey(
@@ -17,3 +18,4 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.from_user.username} -> {self.to_user.username}"
+    
