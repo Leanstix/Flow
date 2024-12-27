@@ -52,7 +52,15 @@ class FriendRequestView(APIView):
             friend_request = FriendRequest.objects.get(id=pk, to_user=request.user)
             friend_request.accepted = True
             friend_request.save()
-            return Response(FriendRequestSerializer(friend_request).data, status=status.HTTP_200_OK)
+
+            # Prepare response data
+            response_data = {
+                "message": "Friend request accepted.",
+                "from_user_id": friend_request.from_user.id,
+                "to_user_id": friend_request.to_user.id,
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
         except FriendRequest.DoesNotExist:
             return Response({"error": "Friend request not found."}, status=status.HTTP_404_NOT_FOUND)
 
