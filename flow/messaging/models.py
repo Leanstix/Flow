@@ -8,7 +8,7 @@ class Conversation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Conversation between {', '.join(participant.username for participant in self.participants.all())}"
+        return f"Conversation between {', '.join(participant.user_name for participant in self.participants.all())}"
 
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, related_name="messages", on_delete=models.CASCADE)

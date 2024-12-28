@@ -17,5 +17,5 @@ class FriendRequest(models.Model):
     accepted = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.from_user.username} -> {self.to_user.username}"
+        return f"{self.from_user.user_name} -> {self.to_user.user_name}"
     

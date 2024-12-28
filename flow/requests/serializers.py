@@ -35,7 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         user = request.user
 
-        print(f"User: {user}, Friend: {obj}")  # Debug users
+        #print(f"User: {user}, Friend: {obj}")  # Debug users
         
         conversations = Conversation.objects.filter(participants__in=[user, obj])
         print(f"Conversations with participants: {conversations}")  # Debug intermediate query
