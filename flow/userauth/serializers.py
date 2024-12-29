@@ -66,7 +66,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
         # Update interests if provided
         if interests is not None:
-            instance.interests.set(interests)
+            instance.interests = interests  # Update JSONField directly
+            instance.save()
 
-        instance.save()
         return instance
