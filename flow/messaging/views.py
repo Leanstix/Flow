@@ -19,6 +19,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
             return Conversation.objects.none()
         return Conversation.objects.filter(participants=self.request.user)
 
+    def get_serializer_context(self):
+        """Provide context to the serializer"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def create(self, request, *args, **kwargs):
         participants = request.data.get('participants')
 
