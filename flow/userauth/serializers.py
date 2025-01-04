@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 #from django.core.mail import send_mail
 from django.conf import settings
 from .models import Interest
+from django.core.mail import send_mail
 
 User = get_user_model()
 
@@ -29,6 +30,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
        # Print activation link in terminal for testing instead of sending an email
         activation_url = f"http://localhost:3000/activate?token={user.activation_token}"
+        send_mail(
+            
+        )
         print(f"Activation link (copy and paste in browser to activate): {activation_url}")
 
         return user

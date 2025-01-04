@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny
 from .models import User
 
+
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
