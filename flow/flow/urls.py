@@ -23,15 +23,15 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/adds/', include('marketplace.urls')),
-    path('api/', include('login.urls')),
-    path('api/', include('messaging.urls')),
-    path('api/', include('userauth.urls')),  # Ensure 'userauth.urls' exists and is correct
+    path('api/login/', include('login.urls')),
+    path('api/messaging/', include('messaging.urls')),
+    path('api/userauth/', include('userauth.urls')),  # Ensure 'userauth.urls' exists and is correct
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    path("api/", include("posts.urls")),
+    path('api/posts/', include('posts.urls')),
     path('api/token/', include('token_generation.urls')),
-    path('api/', include('requests.urls')),
-    path('api/', include('profiles.urls')),
+    path('api/requests/', include('requests.urls')),
+    path('api/profiles/', include('profiles.urls')),
 ]
 
 if settings.DEBUG:  # Serve media files only in development
