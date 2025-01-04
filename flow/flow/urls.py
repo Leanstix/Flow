@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.urls import include
 from django.conf.urls.static import static
 from django.conf import settings
+from django.http import JsonResponse
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -32,6 +33,7 @@ urlpatterns = [
     path('api/token/', include('token_generation.urls')),
     path('api/requests/', include('requests.urls')),
     path('api/profiles/', include('profiles.urls')),
+    path('', lambda request: JsonResponse({'message': 'Welcome to the API!'})),
 ]
 
 if settings.DEBUG:  # Serve media files only in development
