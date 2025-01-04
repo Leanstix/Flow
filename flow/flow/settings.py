@@ -5,6 +5,10 @@ from corsheaders.defaults import default_headers
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -12,7 +16,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-c8be5%#ua(=^+6=t4=&l4((y8*xw=h8+6=@b!bkk@o)+fchci0'
+SECRET_KEY = os.environ.get('SECRET_Key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
