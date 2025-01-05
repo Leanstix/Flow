@@ -39,7 +39,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # Your frontend domain
     'http://127.0.0.1:3000',
     'https://flow-e9ec.onrender.com:10000',
-    'flow-aleshinloye-olamilekan-s-projects.vercel.app'
+    'https://flow-aleshinloye-olamilekan-s-projects.vercel.app'
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
