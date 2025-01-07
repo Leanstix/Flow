@@ -29,16 +29,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User(**validated_data)
         user.set_password(password)
         user.save()
-        Email = os.environ.get('EMAIL_HOST_USER')
 
        #sending an email to the user to receive their activation link
         activation_url = f"http://localhost:3000/activate?token={user.activation_token}"
         send_mail(
             "Flow User Activation",#subject
             activation_url,#message
-            Email#from email
-            [user.email]#toemail
-            fail_silently=False,
+            Email, #from email
+            [user.email], #toemail
+            fail_silently=False
         )
         print(f"Activation link (copy and paste in browser to activate): {activation_url}")
 

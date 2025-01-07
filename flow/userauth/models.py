@@ -5,24 +5,56 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.core.validators import RegexValidator, EmailValidator
 from django.utils.crypto import get_random_string
 from django.conf import settings
+from django.core.mail import send_mail
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, university_id, password=None, **extra_fields):
-        if not email:
-            raise ValueError("The Email field must be filled")
-        if not university_id:
-            raise ValueError("The University ID field must be filled")
+    def create(self, validated_data):
+        try:
+            # Extracting necessary fields
+            email = validated_data['email']
+            university_id = validated_data['university_id']
+            password = validated_data['password']
 
-        email = self.normalize_email(email)
-        user = self.model(
-            email=email,
-            university_id=university_id,
-            **extra_fields
-        )
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
+            # Create the user
+            user = User.objects.create_user(
+                email=email,
+                university_id=university_id,
+                password=password,
+                **{k: v for k, v in validated_data.items() if k not in ['email', 'university_id', 'password']}
+            )
+
+            # Log user creation success
+            logger.info(f"User created successfully: {email}")
+
+            # Send activation email
+            activation_link = f"{settings.FRONTEND_URL}/activate/{user.activation_token}"
+            subject = "Account Activation"
+            message = f"Hi {email},\n\nPlease activate your account using the link below:\n{activation_link}\n\nThank you!"
+
+            # Log email attempt
+            logger.info(f"Sending activation email to {email}")
+            
+            email_from = os.environ.get('EMAIL_HOST_USER')
+            if not email_from:
+                raise ValueError("EMAIL_HOST_USER environment variable is not set.")
+            
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=email_from,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+
+            # Log email success
+            logger.info(f"Activation email sent successfully to {email}")
+
+            return user
+
+        except Exception as e:
+            logger.error(f"Error during user registration: {e}")
+            raise ValidationError(f"An error occurred: {str(e)}")
 
     def create_superuser(self, email, university_id, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
