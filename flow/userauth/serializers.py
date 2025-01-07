@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from .models import Interest
 from django.core.mail import send_mail
+from dotenv import load_dotenv
+import os
 
 User = get_user_model()
 
@@ -27,11 +29,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User(**validated_data)
         user.set_password(password)
         user.save()
+        Email = os.environ.get('EMAIL_HOST_USER')
 
-       # Print activation link in terminal for testing instead of sending an email
+       #sending an email to the user to receive their activation link
         activation_url = f"http://localhost:3000/activate?token={user.activation_token}"
         send_mail(
-            
+            "Flow User Activation",#subject
+            activation_url,#message
+            "leanstixx@gmail.come"#from email
+            #toemail
         )
         print(f"Activation link (copy and paste in browser to activate): {activation_url}")
 
