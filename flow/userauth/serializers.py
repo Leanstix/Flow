@@ -36,8 +36,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         send_mail(
             "Flow User Activation",#subject
             activation_url,#message
-            "leanstixx@gmail.come"#from email
-            #toemail
+            Email#from email
+            [user.email]#toemail
+            fail_silently=False,
         )
         print(f"Activation link (copy and paste in browser to activate): {activation_url}")
 
