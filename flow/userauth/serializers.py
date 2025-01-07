@@ -29,6 +29,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User(**validated_data)
         user.set_password(password)
         user.save()
+        Email = os.environ.get('EMAIL_HOST_PASSWORD')
 
        #sending an email to the user to receive their activation link
         activation_url = f"http://localhost:3000/activate?token={user.activation_token}"
