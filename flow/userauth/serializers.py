@@ -29,7 +29,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User(**validated_data)
         user.set_password(password)
         user.save()
-        Email = os.environ.get('EMAIL_HOST_PASSWORD')
+        Email = os.environ.get('EMAIL_HOST_USER')
 
        #sending an email to the user to receive their activation link
         activation_url = f"https://flow-aleshinloye-olamilekan-s-projects.vercel.app/activate?token={user.activation_token}"
