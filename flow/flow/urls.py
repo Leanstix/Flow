@@ -25,7 +25,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/adds/', include('marketplace.urls')),
     path('api/login/', include('login.urls')),
-    path('api/messaging/', include('messaging.urls')),
+    path('api/', include('messaging.urls')),
     path('api/userauth/', include('userauth.urls')),  # Ensure 'userauth.urls' exists and is correct
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
