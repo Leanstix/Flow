@@ -13,31 +13,16 @@ class GenerateAccessTokenView(APIView):
 
     def post(self, request):
         try:
-            auth_header = request.headers.get("Authorization")
-            logger.info("Authorization header: %s", auth_header)
+            # Get the refresh token from the request body
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                logger.error("No refresh token provided.")
+                return Response({"error": "Refresh token missing."}, status=status.HTTP_400_BAD_REQUEST)
 
-            if not auth_header or not auth_header.startswith("Bearer "):
-                logger.error("No Authorization header or invalid format.")
-                return Response({"error": "Refresh token missing or invalid."}, status=status.HTTP_400_BAD_REQUEST)
-
-            refresh_token = auth_header.split(" ")[1]
-            logger.info("Refresh token received: %s", refresh_token)
-
-            # Decode token to debug claims
-            try:
-                decoded_token = jwt.decode(refresh_token, options={"verify_signature": False})
-                logger.info("Decoded refresh token claims: %s", decoded_token)
-            except Exception as decode_error:
-                logger.error("Error decoding token: %s", str(decode_error))
-
-            # Validate refresh token and generate access token
+            # Validate refresh token and generate a new access token
             refresh = RefreshToken(refresh_token)
-            if refresh.payload.get("token_type") != "refresh":
-                logger.error("Invalid token type: %s", refresh.get("token_type"))
-                return Response({"error": "Invalid or expired refresh token."}, status=status.HTTP_400_BAD_REQUEST)
-
             access_token = str(refresh.access_token)
-            logger.info("Generated access token: %s", access_token)
+            logger.info("Generated new access token for user ID %s", refresh.payload.get("user_id"))
 
             return Response({"access": access_token}, status=status.HTTP_200_OK)
 
@@ -47,3 +32,4 @@ class GenerateAccessTokenView(APIView):
         except Exception as e:
             logger.error("Unexpected error: %s", str(e))
             return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
