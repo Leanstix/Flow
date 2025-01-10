@@ -77,10 +77,12 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
 
             # Ensure the token is a refresh token
-            
-            if token.get("token_type") != "access":
-                logger.error("Invalid token type: Expected 'refresh', got '%s'", token.get("token_type"))
+            if token.payload.get("token_type") != "refresh":
+                logger.error("Invalid token type: Expected 'refresh', got '%s'", token.payload.get("token_type"))
                 return Response({"error": "Invalid token type."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Blacklist the token (if blacklisting is enabled)
+            #token.blacklist()
 
             return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
         except TokenError as e:
@@ -89,4 +91,3 @@ class LogoutView(APIView):
         except Exception as e:
             logger.error("Unexpected error during logout: %s", str(e))
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                
