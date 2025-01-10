@@ -63,28 +63,21 @@ class LoginView(APIView):
 class LogoutView(APIView):
     def post(self, request):
         try:
-            # Get the Authorization header
-            auth_header = request.headers.get("Authorization")
-            if not auth_header or not auth_header.startswith("Bearer "):
-                logger.error("No Authorization header or invalid format.")
-                return Response({"error": "Refresh token missing or invalid."}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Extract the refresh token
-            refresh_token = auth_header.split("Bearer ")[1]
-            logger.info("Received Refresh Token: %s", refresh_token)
+            # Get the refresh token from the request body
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                logger.error("No refresh token provided.")
+                return Response({"error": "Refresh token missing."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Validate the refresh token
             token = RefreshToken(refresh_token)
 
-            # Ensure the token is a refresh token
-            if token.payload.get("token_type") != "refresh":
-                logger.error("Invalid token type: Expected 'refresh', got '%s'", token.payload.get("token_type"))
-                return Response({"error": "Invalid token type."}, status=status.HTTP_400_BAD_REQUEST)
-
             # Blacklist the token (if blacklisting is enabled)
-            #token.blacklist()
+            # token.blacklist()
 
+            logger.info("Successfully logged out user.")
             return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
+
         except TokenError as e:
             logger.error("Token error during logout: %s", str(e))
             return Response({"error": "Invalid or expired refresh token."}, status=status.HTTP_400_BAD_REQUEST)
