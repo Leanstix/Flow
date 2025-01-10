@@ -32,7 +32,7 @@ class GenerateAccessTokenView(APIView):
 
             # Validate refresh token and generate access token
             refresh = RefreshToken(refresh_token)
-            if refresh.get("token_type") != "refresh":
+            if refresh.payload.get("token_type") != "refresh":
                 logger.error("Invalid token type: %s", refresh.get("token_type"))
                 return Response({"error": "Invalid or expired refresh token."}, status=status.HTTP_400_BAD_REQUEST)
 
