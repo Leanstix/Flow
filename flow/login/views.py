@@ -61,6 +61,8 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         try:
             # Get the refresh token from the request body
