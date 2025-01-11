@@ -94,7 +94,7 @@ class SearchPostsView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 class FeedView(APIView):
-    permission_classes = [IsAuthenticated]
+    peclrmission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Get the authenticated user
