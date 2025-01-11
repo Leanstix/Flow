@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import os
+from django.contrib.auth.hashers import make_password
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -41,6 +42,24 @@ class PasswordResetVerifyView(APIView):
 
             if token_generator.check_token(user, token):
                 return Response({"message": "Token is valid."}, status=status.HTTP_200_OK)
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoUnicodeDecodeError:
+            return Response({"error": "Invalid token format."}, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordResetCompleteView(APIView):
+    def post(self, request):
+        uidb64 = request.data.get("uid")
+        token = request.data.get("token")
+        new_password = request.data.get("password")
+
+        try:
+            user_id = smart_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=user_id)
+
+            if token_generator.check_token(user, token):
+                user.password = make_password(new_password)
+                user.save()
+                return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
             return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
         except DjangoUnicodeDecodeError:
             return Response({"error": "Invalid token format."}, status=status.HTTP_400_BAD_REQUEST)
