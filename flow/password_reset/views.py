@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_bytes, smart_str, DjangoUnicodeDecodeError
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -8,10 +8,15 @@ from rest_framework.response import Response
 from rest_framework import status
 import os
 from django.contrib.auth.hashers import make_password
+from rest_framework.permissions import AllowAny
+
+User = get_user_model()
 
 token_generator = PasswordResetTokenGenerator()
 
 class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get("email")
         try:
@@ -33,6 +38,8 @@ class PasswordResetRequestView(APIView):
             return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
 class PasswordResetVerifyView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         uidb64 = request.data.get("uid")
         token = request.data.get("token")
@@ -47,6 +54,8 @@ class PasswordResetVerifyView(APIView):
             return Response({"error": "Invalid token format."}, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetCompleteView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         uidb64 = request.data.get("uid")
         token = request.data.get("token")
