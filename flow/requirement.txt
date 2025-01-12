@@ -17,3 +17,7 @@ python-dotenv==1.0.0
 sendgrid==6.11.0
 psycopg2==2.9.10
 channels==4.2.0
+daphne==4.1.2 
+channels_redis==4.2.1
+redis==5.2.1
+g
