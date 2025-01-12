@@ -18,7 +18,7 @@ class PasswordResetRequestView(APIView):
             user = User.objects.get(email=email)
             token = token_generator.make_token(user)
             uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
-            reset_link = f"https://your-frontend.com/reset-password?uid={uidb64}&token={token}"
+            reset_link = f"https://flow-aleshinloye-olamilekan-s-projects.vercel.app/reset?uid={uidb64}&token={token}"
             Email = os.environ.get('EMAIL_HOST_USER')
 
             # Send email
