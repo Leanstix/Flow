@@ -146,6 +146,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'flow.wsgi.application'
 
+ASGI_APPLICATION = 'flow.asgi.application'
+
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
