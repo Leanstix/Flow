@@ -1,3 +1,4 @@
+# consumers.py
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
@@ -11,7 +12,6 @@ class CallConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -23,20 +23,21 @@ class CallConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        action = data.get('action')
+        event_type = data.get('type')
 
-        if action == 'offer' or action == 'answer' or action == 'candidate':
-            # Forward the offer, answer, or ICE candidate to the other peer
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'call_message',
-                    'message': data,
-                }
-            )
+        # Relay the message to all participants in the group
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'call_message',
+                'event_type': event_type,
+                'data': data
+            }
+        )
 
     async def call_message(self, event):
-        message = event['message']
-
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps(message))
+        # Send the message to WebSocket client
+        await self.send(text_data=json.dumps({
+            'event_type': event['event_type'],
+            'data': event['data']
+        }))
