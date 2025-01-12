@@ -34,7 +34,8 @@ urlpatterns = [
     path('api/requests/', include('requests.urls')),
     path('api/profiles/', include('profiles.urls')),
     path('', lambda request: JsonResponse({'message': 'Welcome to the API of Flow!'})),
-    path('api/reset-password/', include('password_reset.urls'))
+    path('api/reset-password/', include('password_reset.urls')),
+    path('api/call/', include('calls.urls'))
 ]
 
 if settings.DEBUG:  # Serve media files only in development
