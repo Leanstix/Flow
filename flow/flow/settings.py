@@ -101,7 +101,8 @@ INSTALLED_APPS = [
     'requests',
     'profiles',
     'marketplace',
-    'password_reset'
+    'password_reset',
+    'channels'
 ]
 
 MIDDLEWARE = [
