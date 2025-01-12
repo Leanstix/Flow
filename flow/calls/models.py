@@ -1,7 +1,9 @@
 # models.py
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 import uuid
+
+User = get_user_model()
 
 class Room(models.Model):
     room_name = models.CharField(max_length=100, unique=True)
