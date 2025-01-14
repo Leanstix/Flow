@@ -11,14 +11,7 @@ def generate_room_name(user_ids):
     Returns:
     - str: A unique room name.
     """
-    # Combine user IDs into a single string
-    user_string = "-".join(sorted(user_ids))  # Sorting ensures consistency
-    timestamp = str(int(time.time()))  # Current timestamp as string
-    
-    # Create a unique hash using user string and timestamp
+    user_string = "-".join(sorted(map(str, user_ids)))  # Ensure IDs are strings and sorted
+    timestamp = str(int(time.time()))
     room_hash = hashlib.sha256(f"{user_string}-{timestamp}".encode()).hexdigest()
-    
-    # Truncate the hash for brevity and readability
-    room_name = f"room-{room_hash[:12]}"
-    
-    return room_name
+    return f"room-{room_hash[:12]}"
