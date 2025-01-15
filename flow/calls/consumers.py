@@ -37,13 +37,14 @@ class CallConsumer(AsyncWebsocketConsumer):
 
             # Relay the message to all participants in the group
             await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'call_message',
-                    'event_type': event_type,
-                    'data': data
-                }
-            )
+            self.room_group_name,
+            {
+                'type': 'call_message',
+                'event_type': event_type,
+                'sender_channel': self.channel_name,
+                'data': data
+            }
+        )
         except json.JSONDecodeError:
             await self.send_error("Invalid JSON format.")
         except Exception as e:
