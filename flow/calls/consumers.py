@@ -19,11 +19,11 @@ class CallConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         try:
-            # Leave room group
             await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
+            self.room_group_name,
+            self.channel_name
+        )
+
         except Exception as e:
             pass  # Log the error if necessary
 
