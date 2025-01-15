@@ -88,7 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     # University Details
-    university_id = models.CharField(max_length=6, unique=True, help_text="University ID number")
+    university_id = models.CharField(max_length=100, blank=True, null=True)
     department = models.CharField(max_length=100, blank=True, null=True)
     year_of_study = models.CharField(max_length=1, choices=YEAR_CHOICES, blank=True, null=True)
 
