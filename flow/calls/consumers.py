@@ -5,15 +5,15 @@ from channels.exceptions import StopConsumer
 class CallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
-            self.room_name = self.scope['url_route']['kwargs']['room_name']
-            self.room_group_name = f'call_{self.room_name}'
+            async def connect(self):
+                self.room_name = self.scope['url_route']['kwargs']['room_name']
+                self.room_group_name = f'call_{self.room_name}'
 
-            # Join room group
-            await self.channel_layer.group_add(
-                self.room_group_name,
-                self.channel_name
-            )
-            await self.accept()
+                await self.channel_layer.group_add(
+                    self.room_group_name,
+                    self.channel_name
+                )
+                await self.accept()
         except Exception as e:
             await self.close()
 
