@@ -52,7 +52,7 @@ class CallConsumer(AsyncWebsocketConsumer):
 
     async def call_message(self, event):
         try:
-            # Send the message to WebSocket client
+            if event['sender_channel'] != self.channel_name:
             await self.send(text_data=json.dumps({
                 'event_type': event['event_type'],
                 'data': event['data']
