@@ -77,7 +77,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, validators=[EmailValidator()])
     first_name = models.CharField(max_length=50, blank=True, null=True)
     last_name = models.CharField(max_length=50, blank=True, null=True)
-    user_name = models.CharField(max_length=50, blank=True, null=True)
+    user_name = models.CharField(max_length=50, blank=True, null=True, unique=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
     phone_number = models.CharField(
         max_length=15,
