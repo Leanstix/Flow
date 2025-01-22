@@ -147,7 +147,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'flow.wsgi.application'
 
-#ASGI_APPLICATION = 'flow.asgi.application'
+ASGI_APPLICATION = 'flow.asgi.application'
 
 CHANNEL_LAYERS = {
     'default': {
