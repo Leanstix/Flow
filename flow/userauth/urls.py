@@ -1,7 +1,7 @@
 from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings  # Import settings
-from .views import ActivateAccountView, UserRegistrationView, UserActivationView, UserProfileUpdateView
+from .views import ActivateAccountView, UserRegistrationView, UserActivationView, UserProfileUpdateView, ChangePasswordView
 
 urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='register'),
