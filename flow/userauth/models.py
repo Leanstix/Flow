@@ -7,7 +7,7 @@ from django.utils.crypto import get_random_string
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
-from .drive_utils import upload_to_google_drive
+from .drive_utils import upload_file_to_drive
 import logging
 
 class CustomUserManager(BaseUserManager):
@@ -148,7 +148,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
             # Upload to Google Drive
             file_name = os.path.basename(picture_path)
-            shared_link = upload_to_google_drive(picture_path, file_name)
+            shared_link = upload_file_to_drive(picture_path, file_name)
             if shared_link:
                 self.profile_picture = shared_link  # Store the link in the database
                 self.save(update_fields=['profile_picture'])
