@@ -137,30 +137,23 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def resize_profile_picture(self):
         """Resize the profile picture and upload it to Google Drive."""
-        picture_path = self.profile_picture.path
         try:
+            picture_path = self.profile_picture.path
+            # Resize the image if necessary
             with Image.open(picture_path) as img:
-                # Ensure the image is in RGB format
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
-                # Resize and optimize
                 img.thumbnail((400, 400))
-                optimized_path = f"{os.path.splitext(picture_path)[0]}_optimized.jpg"
-                img.save(optimized_path, format='JPEG', optimize=True, quality=85)
+                img.save(picture_path, format='JPEG', optimize=True, quality=85)
 
             # Upload to Google Drive
-            file_name = f"profile_picture_{self.id}.jpg"
-            drive_url = upload_to_google_drive(optimized_path, file_name)
-
-            # Update the profile_picture field with the drive URL
-            self.profile_picture = drive_url
-            self.save(update_fields=['profile_picture'])
-
-            # Remove local file
-            os.remove(optimized_path)
-
+            file_name = os.path.basename(picture_path)
+            shared_link = upload_to_google_drive(picture_path, file_name)
+            if shared_link:
+                self.profile_picture = shared_link  # Store the link in the database
+                self.save(update_fields=['profile_picture'])
         except Exception as e:
-            print(f"Error processing image: {e}")
+            print(f"Error processing image or uploading to Google Drive: {e}")
 
     def activate_account(self):
         """Activate the user's account."""
