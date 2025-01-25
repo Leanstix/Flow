@@ -134,18 +134,31 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.resize_profile_picture()
 
     def resize_profile_picture(self):
-        """Resize the profile picture to a standard size and optimize it."""
-        picture_path = self.profile_picture.path
-        try:
-            with Image.open(picture_path) as img:
-                # Ensure the image is in RGB format
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                # Resize and optimize
-                img.thumbnail((400, 400))
-                img.save(picture_path, format='JPEG', optimize=True, quality=85)
-        except Exception as e:
-            print(f"Error processing image: {e}")
+    """Resize the profile picture and upload it to Google Drive."""
+    picture_path = self.profile_picture.path
+    try:
+        with Image.open(picture_path) as img:
+            # Ensure the image is in RGB format
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            # Resize and optimize
+            img.thumbnail((400, 400))
+            optimized_path = f"{os.path.splitext(picture_path)[0]}_optimized.jpg"
+            img.save(optimized_path, format='JPEG', optimize=True, quality=85)
+
+        # Upload to Google Drive
+        file_name = f"profile_picture_{self.id}.jpg"
+        drive_url = upload_to_google_drive(optimized_path, file_name)
+
+        # Update the profile_picture field with the drive URL
+        self.profile_picture = drive_url
+        self.save(update_fields=['profile_picture'])
+
+        # Remove local file
+        os.remove(optimized_path)
+
+    except Exception as e:
+        print(f"Error processing image: {e}")
 
     def activate_account(self):
         """Activate the user's account."""
