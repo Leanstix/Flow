@@ -1,6 +1,8 @@
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
+import json
+import os
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 SERVICE_ACCOUNT_INFO = json.loads(os.environ.get('GOOGLE_DRIVE_CREDENTIALS'))
