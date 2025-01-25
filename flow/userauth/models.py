@@ -6,9 +6,7 @@ from django.core.validators import RegexValidator, EmailValidator
 from django.utils.crypto import get_random_string
 from django.conf import settings
 from django.core.mail import send_mail
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.service_account import Credentials
+
 
 
 class CustomUserManager(BaseUserManager):
