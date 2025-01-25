@@ -1,38 +1,35 @@
 import os
+import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.service_account import Credentials
-from flow import settings
-
-# Google Drive credentials file
-GOOGLE_CREDENTIALS_FILE = os.path.join(settings.BASE_DIR, 'path_to_service_account.json')
-GOOGLE_DRIVE_FOLDER_ID = "your_drive_folder_id"  # Replace with your shared folder ID
 
 def upload_to_google_drive(file_path, file_name):
-    """
-    Uploads a file to Google Drive and returns the file's public URL.
-    """
-    credentials = Credentials.from_service_account_file(GOOGLE_CREDENTIALS_FILE)
-    drive_service = build('drive', 'v3', credentials=credentials)
-    
-    file_metadata = {
-        'name': file_name,
-        'parents': [GOOGLE_DRIVE_FOLDER_ID]
-    }
-    media = MediaFileUpload(file_path, mimetype='image/jpeg')  # Update mimetype based on file type
+    """Upload a file to Google Drive and return the shared link."""
+    try:
+        # Load credentials from the environment variable
+        credentials_info = json.loads(os.environ['GOOGLE_DRIVE_CREDENTIALS'])
+        credentials = Credentials.from_service_account_info(credentials_info)
 
-    uploaded_file = drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields='id'
-    ).execute()
+        # Build the Google Drive API service
+        service = build('drive', 'v3', credentials=credentials)
 
-    # Make the file publicly accessible
-    drive_service.permissions().create(
-        fileId=uploaded_file['id'],
-        body={'type': 'anyone', 'role': 'reader'}
-    ).execute()
+        # Define file metadata and upload
+        file_metadata = {'name': file_name}
+        media = MediaFileUpload(file_path, resumable=True)
+        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
-    # Return the file's public URL
-    file_url = f"https://drive.google.com/uc?id={uploaded_file['id']}&export=download"
-    return file_url
+        # Make the file publicly accessible
+        file_id = file.get('id')
+        service.permissions().create(
+            fileId=file_id,
+            body={'role': 'reader', 'type': 'anyone'}
+        ).execute()
+
+        # Generate the shared link
+        shared_link = f"https://drive.google.com/uc?id={file_id}&export=download"
+        return shared_link
+
+    except Exception as e:
+        print(f"Error uploading file to Google Drive: {e}")
+        return None
