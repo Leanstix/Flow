@@ -1,35 +1,34 @@
-import os
-import json
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.service_account import Credentials
+from googleapiclient.http import MediaIoBaseUpload
 
-def upload_to_google_drive(file_path, file_name):
-    """Upload a file to Google Drive and return the shared link."""
-    try:
-        # Load credentials from the environment variable
-        credentials_info = json.loads(os.environ['GOOGLE_DRIVE_CREDENTIALS'])
-        credentials = Credentials.from_service_account_info(credentials_info)
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+SERVICE_ACCOUNT_INFO = json.loads(os.environ.get('GOOGLE_DRIVE_CREDENTIALS'))
 
-        # Build the Google Drive API service
-        service = build('drive', 'v3', credentials=credentials)
+credentials = service_account.Credentials.from_service_account_info(
+    SERVICE_ACCOUNT_INFO, scopes=SCOPES)
 
-        # Define file metadata and upload
-        file_metadata = {'name': file_name}
-        media = MediaFileUpload(file_path, resumable=True)
-        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+drive_service = build('drive', 'v3', credentials=credentials)
 
-        # Make the file publicly accessible
-        file_id = file.get('id')
-        service.permissions().create(
-            fileId=file_id,
-            body={'role': 'reader', 'type': 'anyone'}
-        ).execute()
+def upload_file_to_drive(file_obj, file_name):
+    """
+    Upload a file directly to Google Drive without saving locally.
 
-        # Generate the shared link
-        shared_link = f"https://drive.google.com/uc?id={file_id}&export=download"
-        return shared_link
+    Args:
+        file_obj (InMemoryUploadedFile): The file object to upload.
+        file_name (str): Name for the file in Google Drive.
 
-    except Exception as e:
-        print(f"Error uploading file to Google Drive: {e}")
-        return None
+    Returns:
+        str: The public Google Drive URL of the uploaded file.
+    """
+    file_metadata = {'name': file_name}
+    media = MediaIoBaseUpload(file_obj, mimetype=file_obj.content_type, resumable=True)
+
+    file = drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id'
+    ).execute()
+
+    file_id = file.get('id')
+    return f"https://drive.google.com/uc?id={file_id}&export=download"
