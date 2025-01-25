@@ -10,8 +10,6 @@ from django.core.exceptions import ValidationError
 from .drive_utils import upload_to_google_drive
 import logging
 
-
-
 class CustomUserManager(BaseUserManager):
     def create(self, validated_data):
         try:

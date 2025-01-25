@@ -2,6 +2,7 @@ import os
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.service_account import Credentials
+from flow import settings
 
 # Google Drive credentials file
 GOOGLE_CREDENTIALS_FILE = os.path.join(settings.BASE_DIR, 'path_to_service_account.json')
