@@ -11,16 +11,6 @@ credentials = service_account.Credentials.from_service_account_info(
 drive_service = build('drive', 'v3', credentials=credentials)
 
 def upload_file_to_drive(file_obj, file_name):
-    """
-    Upload a file directly to Google Drive without saving locally.
-
-    Args:
-        file_obj (InMemoryUploadedFile): The file object to upload.
-        file_name (str): Name for the file in Google Drive.
-
-    Returns:
-        str: The public Google Drive URL of the uploaded file.
-    """
     file_metadata = {'name': file_name}
     media = MediaIoBaseUpload(file_obj, mimetype=file_obj.content_type, resumable=True)
 
