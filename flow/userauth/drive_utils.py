@@ -14,7 +14,14 @@ drive_service = build('drive', 'v3', credentials=credentials)
 
 def upload_file_to_drive(file_obj, file_name):
     file_metadata = {'name': file_name}
-    media = MediaIoBaseUpload(file_obj, mimetype=file_obj.content_type, resumable=True)
+    if hasattr(file_obj, 'content_type'):  # File object from request.FILES
+        mimetype = file_obj.content_type
+        file_stream = file_obj
+    else:  # Convert string or bytes data to file-like object
+        mimetype = 'application/octet-stream'
+        file_stream = BytesIO(file_obj.encode() if isinstance(file_obj, str) else file_obj)
+
+media = MediaIoBaseUpload(file_stream, mimetype=mimetype, resumable=True)
 
     file = drive_service.files().create(
         body=file_metadata,
