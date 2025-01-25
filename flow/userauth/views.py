@@ -7,7 +7,7 @@ from rest_framework.generics import UpdateAPIView
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny
 from .models import User
-
+from .drive_utils import upload_file_to_drive
 
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
