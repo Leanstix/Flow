@@ -3,11 +3,23 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import json
 import os
+from io import BytesIO
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
-SERVICE_ACCOUNT_INFO = json.loads(os.environ.get('GOOGLE_DRIVE_CREDENTIALS'))
 
-credentials = service_account.Credentials.from_service_account_info(SERVICE_ACCOUNT_INFO, scopes=SCOPES)
+# Parse the JSON string
+credentials_info = os.environ.get('GOOGLE_DRIVE_CREDENTIALS')
+if not credentials_info:
+    raise ValueError("Environment variable 'GOOGLE_DRIVE_CREDENTIALS' is not set.")
+
+try:
+    SERVICE_ACCOUNT_INFO = json.loads(credentials_info)
+except json.JSONDecodeError:
+    raise ValueError("Invalid JSON format in 'GOOGLE_DRIVE_CREDENTIALS'.")
+
+credentials = service_account.Credentials.from_service_account_info(
+    SERVICE_ACCOUNT_INFO, scopes=SCOPES
+)
 
 drive_service = build('drive', 'v3', credentials=credentials)
 
