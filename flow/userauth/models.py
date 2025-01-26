@@ -136,24 +136,32 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.resize_profile_picture()
 
     def resize_profile_picture(self):
-        """Resize the profile picture and upload it to Google Drive."""
-        try:
-            picture_path = self.profile_picture.path
-            # Resize the image if necessary
-            with Image.open(picture_path) as img:
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                img.thumbnail((400, 400))
-                img.save(picture_path, format='JPEG', optimize=True, quality=85)
+    """Resize the profile picture and upload it to Google Drive."""
+    try:
+        if self.profile_picture.startswith("http"):
+            # Fetch the image from the URL
+            response = requests.get(self.profile_picture)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content))
+        else:
+            # Load the image from the local path
+            img = Image.open(self.profile_picture.path)
 
-            # Upload to Google Drive
-            file_name = os.path.basename(picture_path)
-            shared_link = upload_file_to_drive(picture_path, file_name)
-            if shared_link:
-                self.profile_picture = shared_link  # Store the link in the database
-                self.save(update_fields=['profile_picture'])
-        except Exception as e:
-            print(f"Error processing image or uploading to Google Drive: {e}")
+        # Resize the image if necessary
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img.thumbnail((400, 400))
+        temp_file_path = f"/tmp/{os.path.basename(self.profile_picture.name)}"
+        img.save(temp_file_path, format='JPEG', optimize=True, quality=85)
+
+        # Upload to Google Drive
+        shared_link = upload_file_to_drive(temp_file_path, os.path.basename(temp_file_path))
+        if shared_link:
+            self.profile_picture = shared_link  # Store the link in the database
+            self.save(update_fields=['profile_picture'])
+
+    except Exception as e:
+        print(f"Error processing image or uploading to Google Drive: {e}")
 
     def activate_account(self):
         """Activate the user's account."""
