@@ -21,7 +21,7 @@ def upload_file_to_drive(file_obj, file_name):
         mimetype = 'application/octet-stream'
         file_stream = BytesIO(file_obj.encode() if isinstance(file_obj, str) else file_obj)
 
-media = MediaIoBaseUpload(file_stream, mimetype=mimetype, resumable=True)
+    media = MediaIoBaseUpload(file_stream, mimetype=mimetype, resumable=True)
 
     file = drive_service.files().create(
         body=file_metadata,
