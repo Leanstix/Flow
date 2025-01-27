@@ -1,3 +1,4 @@
+import os  # Add this import
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -47,13 +48,26 @@ class UserProfileUpdateView(UpdateAPIView):
         profile_image = request.FILES.get('profile_image')
         if profile_image:
             try:
-                # Upload to Google Drive
-                drive_url = upload_file_to_drive(profile_image, profile_image.name)
+                # Save the file temporarily
+                temp_file_path = f"/tmp/{profile_image.name}"
+                with open(temp_file_path, 'wb') as temp_file:
+                    for chunk in profile_image.chunks():
+                        temp_file.write(chunk)
+
+                # Resize and upload the file to Google Drive
+                drive_url = upload_file_to_drive(temp_file_path, profile_image.name)
                 # Save the URL to the user's profile
                 user.profile_image_url = drive_url
                 user.save()
+
             except Exception as e:
                 return Response({'error': f'Error uploading file: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            finally:
+                # Cleanup temporary file
+                if os.path.exists(temp_file_path):
+                    os.remove(temp_file_path)
+
+        return super().update(request, *args, **kwargs)
 
         # Proceed with updating other fields using the serializer
         serializer = self.get_serializer(user, data=request.data, partial=True)
@@ -81,4 +95,3 @@ class ChangePasswordView(APIView):
             serializer.save()
             return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        

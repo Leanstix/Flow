@@ -38,3 +38,4 @@ def upload_file_to_drive(file_obj, file_name):
 
     file_id = file.get('id')
     return f"https://drive.google.com/uc?id={file_id}&export=download"
+    

@@ -141,9 +141,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def resize_profile_picture(self):
         """Resize the profile picture and upload it to Google Drive."""
         try:
-            if self.profile_picture.startswith("http"):
+            # Check if the profile_picture is a file-like object or a local path
+            if hasattr(self.profile_picture, 'url') and self.profile_picture.url.startswith("http"):
                 # Fetch the image from the URL
-                response = requests.get(self.profile_picture)
+                response = requests.get(self.profile_picture.url)
                 response.raise_for_status()
                 img = Image.open(BytesIO(response.content))
             else:
@@ -160,11 +161,13 @@ class User(AbstractBaseUser, PermissionsMixin):
             # Upload to Google Drive
             shared_link = upload_file_to_drive(temp_file_path, os.path.basename(temp_file_path))
             if shared_link:
-                self.profile_picture = shared_link  # Store the link in the database
+                # Store the link in the database
+                self.profile_picture = shared_link
                 self.save(update_fields=['profile_picture'])
 
         except Exception as e:
             logging.error(f"Error processing image or uploading to Google Drive: {e}")
+
 
     def activate_account(self):
         """Activate the user's account."""
