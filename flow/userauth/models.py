@@ -155,11 +155,9 @@ class User(AbstractBaseUser, PermissionsMixin):
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
             img.thumbnail((400, 400))
-            temp_file_path = f"/tmp/{os.path.basename(self.profile_picture.name)}"
-            img.save(temp_file_path, format='JPEG', optimize=True, quality=85)
 
             # Upload to Google Drive
-            shared_link = upload_file_to_drive(temp_file_path, os.path.basename(temp_file_path))
+            shared_link = upload_file_to_drive(img, os.path.basename(self.profile_picture.name))
             if shared_link:
                 # Store the link in the database
                 self.profile_picture = shared_link
