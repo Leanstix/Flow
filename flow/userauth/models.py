@@ -138,33 +138,56 @@ class User(AbstractBaseUser, PermissionsMixin):
         if self.profile_picture:
             self.resize_profile_picture()
 
-    def resize_profile_picture(self):
-        """Resize the profile picture and upload it to Google Drive."""
-        try:
-            # Check if the profile_picture is a file-like object or a local path
-            if hasattr(self.profile_picture, 'url') and self.profile_picture.url.startswith("http"):
-                # Fetch the image from the URL
-                response = requests.get(self.profile_picture.url)
-                response.raise_for_status()
-                img = Image.open(BytesIO(response.content))
-            else:
-                # Load the image from the local path
-                img = Image.open(self.profile_picture.path)
+    from PIL import Image
+from io import BytesIO
+import os
+import requests
+import logging
 
-            # Resize the image if necessary
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
-            img.thumbnail((400, 400))
+def resize_profile_picture(self):
+    """Resize the profile picture and upload it to Google Drive."""
+    try:
+        # Load the image from a URL or local path
+        if hasattr(self.profile_picture, 'url') and self.profile_picture.url.startswith("http"):
+            # Fetch the image from the URL
+            response = requests.get(self.profile_picture.url)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content))
+        else:
+            # Load the image from the local path
+            img = Image.open(self.profile_picture.path)
 
-            # Upload to Google Drive
-            shared_link = upload_file_to_drive(img, os.path.basename(self.profile_picture.name))
-            if shared_link:
-                # Store the link in the database
-                self.profile_picture = shared_link
-                self.save(update_fields=['profile_picture'])
+        # Resize the image if necessary
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img.thumbnail((400, 400))
 
-        except Exception as e:
-            logging.error(f"Error processing image or uploading to Google Drive: {e}")
+        # Convert the image to bytes-like object
+        temp_buffer = BytesIO()
+        img.save(temp_buffer, format='JPEG', optimize=True, quality=85)
+        temp_buffer.seek(0)  # Move pointer to the start of the buffer
+
+        # Save the image to a temporary file
+        temp_file_path = f"/tmp/{os.path.basename(self.profile_picture.name)}"
+        with open(temp_file_path, 'wb') as temp_file:
+            temp_file.write(temp_buffer.read())
+
+        # Upload the file to Google Drive
+        shared_link = upload_file_to_drive(temp_file_path, os.path.basename(temp_file_path))
+        if shared_link:
+            # Store the link in the database
+            self.profile_picture = shared_link
+            self.save(update_fields=['profile_picture'])
+
+    except Exception as e:
+        logging.error(f"Error processing image or uploading to Google Drive: {e}")
+        
+    finally:
+        # Cleanup temporary file if it exists
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+
 
 
     def activate_account(self):
