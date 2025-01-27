@@ -164,7 +164,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                 self.save(update_fields=['profile_picture'])
 
         except Exception as e:
-            print(f"Error processing image or uploading to Google Drive: {e}")
+            logging.error(f"Error processing image or uploading to Google Drive: {e}")
 
     def activate_account(self):
         """Activate the user's account."""
