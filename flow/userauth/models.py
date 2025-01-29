@@ -114,16 +114,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.email}"
 
     def save(self, *args, **kwargs):
-        if not self.pk:  
-            if not self.activation_token and not self.email_verified:
-                self.activation_token = get_random_string(32)
-
+        if not self.pk and not self.activation_token and not self.email_verified:
+            self.activation_token = get_random_string(32)
         super().save(*args, **kwargs)
 
         if self.profile_picture:
             self.resize_profile_picture()
-
-    from PIL import Image
 
     def resize_profile_picture(self):
         """Resize the profile picture and upload it to Google Drive."""
