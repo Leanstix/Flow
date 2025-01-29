@@ -75,11 +75,9 @@ class CustomUserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    # Constants for choices
     GENDER_CHOICES = [('M', 'Male'), ('F', 'Female')]
-    YEAR_CHOICES = [(str(i), str(i)) for i in range(1, 7)]  # e.g., 1st to 6th year
+    YEAR_CHOICES = [(str(i), str(i)) for i in range(1, 7)]
 
-    # Basic Information
     email = models.EmailField(unique=True, validators=[EmailValidator()])
     first_name = models.CharField(max_length=50, blank=True, null=True)
     last_name = models.CharField(max_length=50, blank=True, null=True)
@@ -89,38 +87,24 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=15,
         validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$')],
         blank=True,
-        null=True,
-        help_text="Phone number format: +999999999. Up to 15 digits."
+        null=True
     )
 
-    # University Details
     university_id = models.CharField(max_length=100, blank=True, null=True)
     department = models.CharField(max_length=100, blank=True, null=True)
     year_of_study = models.CharField(max_length=1, choices=YEAR_CHOICES, blank=True, null=True)
 
-    # Profile Details
-    bio = models.TextField(blank=True, help_text="Brief bio or description", null=True)
-    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
-    interests = models.JSONField('Interests', blank=True, null=True)
-    # Account Status
-    is_active = models.BooleanField(default=False)  # Account activation via email
-    is_staff = models.BooleanField(default=False)   # Staff status for admin access
+    bio = models.TextField(blank=True, null=True)
+    profile_picture = models.URLField(blank=True, null=True)  # Store Google Drive URL
+
+    is_active = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
     activation_token = models.CharField(max_length=32, blank=True, null=True)
     email_verified = models.BooleanField(default=False)
 
-    # Adding related_name to avoid clashes
-    groups = models.ManyToManyField(
-        Group,
-        related_name="userauth_users",  # Custom related_name
-        blank=True
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        related_name="userauth_users_permissions",  # Custom related_name
-        blank=True
-    )
+    groups = models.ManyToManyField(Group, related_name="userauth_users", blank=True)
+    user_permissions = models.ManyToManyField(Permission, related_name="userauth_users_permissions", blank=True)
 
-    # Managers
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
