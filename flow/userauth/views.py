@@ -38,28 +38,20 @@ class UserProfileUpdateView(UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # Allow only the authenticated user to update their own profile
         return self.request.user
 
     def update(self, request, *args, **kwargs):
         user = self.get_object()
-
-        # Check if a file is included in the request
         profile_image = request.FILES.get('profile_image')
+
         if profile_image:
             try:
-                # Upload the file directly to Google Drive
                 drive_url = upload_file_to_drive(profile_image, profile_image.name)
-                # Save the URL to the user's profile
-                user.profile_image_url = drive_url
-                user.save()
-
+                user.profile_picture = drive_url
+                user.save(update_fields=['profile_picture'])
             except Exception as e:
                 return Response({'error': f'Error uploading file: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return super().update(request, *args, **kwargs)
-
-        # Proceed with updating other fields using the serializer
         serializer = self.get_serializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
