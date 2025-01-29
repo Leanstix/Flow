@@ -143,49 +143,48 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def resize_profile_picture(self):
         """Resize the profile picture and upload it to Google Drive."""
-        try:
-            # Load the image from a URL or local path
-            if hasattr(self.profile_picture, 'url') and self.profile_picture.url.startswith("http"):
-                # Fetch the image from the URL
-                response = requests.get(self.profile_picture.url)
-                response.raise_for_status()
-                img = Image.open(BytesIO(response.content))
-            else:
-                # Load the image from the local path
-                img = Image.open(self.profile_picture.path)
+        temp_file_path = None  # Ensure it's defined
 
-            # Resize the image if necessary
+        try:
+            # Check if the profile picture is already a Drive link
+            if isinstance(self.profile_picture, str) and self.profile_picture.startswith("http"):
+                logging.info("Skipping resizing: profile picture is an external link.")
+                return
+
+            # Load the image from a local path
+            if not self.profile_picture or not hasattr(self.profile_picture, 'path'):
+                logging.error("Profile picture file path is invalid.")
+                return
+
+            img = Image.open(self.profile_picture.path)
+
+            # Resize if needed
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
             img.thumbnail((400, 400))
 
-            # Convert the image to bytes-like object
+            # Convert image to bytes
             temp_buffer = BytesIO()
             img.save(temp_buffer, format='JPEG', optimize=True, quality=85)
-            temp_buffer.seek(0)  # Move pointer to the start of the buffer
+            temp_buffer.seek(0)
 
-            # Save the image to a temporary file
+            # Save the resized image temporarily
             temp_file_path = f"/tmp/{os.path.basename(self.profile_picture.name)}"
             with open(temp_file_path, 'wb') as temp_file:
                 temp_file.write(temp_buffer.read())
 
-            # Upload the file to Google Drive
+            # Upload to Google Drive
             shared_link = upload_file_to_drive(temp_file_path, os.path.basename(temp_file_path))
             if shared_link:
-                # Store the link in the database
                 self.profile_picture = shared_link
                 self.save(update_fields=['profile_picture'])
 
         except Exception as e:
-            logging.error(f"Error processing image or uploading to Google Drive: {e}")
-            
+            logging.error(f"Error processing image: {e}")
+
         finally:
-            # Cleanup temporary file if it exists
-            if os.path.exists(temp_file_path):
+            if temp_file_path and os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
-
-
-
 
     def activate_account(self):
         """Activate the user's account."""
