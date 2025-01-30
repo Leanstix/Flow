@@ -117,9 +117,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not self.pk and not self.activation_token and not self.email_verified:
             self.activation_token = get_random_string(32)
         super().save(*args, **kwargs)
-
+        '''
         if self.profile_picture:
-            self.resize_profile_picture()
+            self.resize_profile_picture()'''
     '''
     def resize_profile_picture(self):
         """Resize the profile picture and upload it to Google Drive."""
