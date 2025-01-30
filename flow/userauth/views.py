@@ -32,7 +32,6 @@ class UserActivationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 User = get_user_model()
-
 class UserProfileUpdateView(UpdateAPIView):
     serializer_class = UserProfileUpdateSerializer
     permission_classes = [IsAuthenticated]
@@ -55,7 +54,12 @@ class UserProfileUpdateView(UpdateAPIView):
                 return Response({'error': f'Error uploading profile picture: {str(e)}'},
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return super().update(request, *args, **kwargs)
+        # Update other fields
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(serializer.data)
     
 class ActivateAccountView(APIView):
     def get(self, request):

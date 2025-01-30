@@ -120,7 +120,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         if self.profile_picture:
             self.resize_profile_picture()
-
+    '''
     def resize_profile_picture(self):
         """Resize the profile picture and upload it to Google Drive."""
         temp_file_path = None  # Ensure it's defined
@@ -165,7 +165,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         finally:
             if temp_file_path and os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
-
+    '''
     def activate_account(self):
         """Activate the user's account."""
         self.is_active = True

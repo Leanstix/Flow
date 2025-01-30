@@ -72,8 +72,8 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['email', 'university_id']  # Prevent changes to email and university_id
 
     def update(self, instance, validated_data):
+        interests = validated_data.pop('interests', None)
         instance = super().update(instance, validated_data)
-        return instance
 
         # Update interests if provided
         if interests is not None:
