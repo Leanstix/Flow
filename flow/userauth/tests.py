@@ -33,9 +33,9 @@ class UserProfileUpdateTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
-            email="test@example.com",
-            university_id="12345",
-            password="testpassword"
+            email="leanstixx@gmail.com",
+            university_id="231472",
+            password="Ka1,@yada24.@sa"
         )
         self.client.force_authenticate(user=self.user)
 

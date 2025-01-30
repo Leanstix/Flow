@@ -62,6 +62,7 @@ class UserActivationSerializer(serializers.Serializer):
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     interests = serializers.PrimaryKeyRelatedField(queryset=Interest.objects.all(), many=True, required=False)
+    profile_picture = serializers.URLField(required=False, allow_blank=True)
 
     class Meta:
         model = User
