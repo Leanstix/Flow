@@ -44,7 +44,7 @@ class LoginView(APIView):
                 "year_of_study": getattr(user, "year_of_study", None),
                 "user_name": getattr(user, "user_name", None),
                 "profile_picture": (
-                    f"{settings.MEDIA_URL}{user.profile_picture}" 
+                    f"{user.profile_picture}" 
                     if user.profile_picture 
                     else None
                 ),
