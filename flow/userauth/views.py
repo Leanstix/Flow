@@ -9,6 +9,10 @@ from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny
 from .models import User
 from .drive_utils import upload_file_to_drive
+import logging
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
 
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
@@ -31,7 +35,7 @@ class UserActivationView(APIView):
             return Response({"message": "Account activated successfully!"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-User = get_user_model()
+
 class UserProfileUpdateView(UpdateAPIView):
     serializer_class = UserProfileUpdateSerializer
     permission_classes = [IsAuthenticated]
@@ -41,25 +45,32 @@ class UserProfileUpdateView(UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         user = self.get_object()
+        logger.info(f"Updating profile for user: {user.email}")
 
         # Check if a new profile picture is uploaded
         profile_picture = request.FILES.get('profile_picture')
         if profile_picture:
+            logger.info(f"New profile picture uploaded: {profile_picture.name}")
             try:
                 # Upload to Google Drive and store the link
                 drive_url = upload_file_to_drive(profile_picture, profile_picture.name)
+                logger.info(f"Profile picture uploaded to Google Drive: {drive_url}")
                 user.profile_picture = drive_url
                 user.save(update_fields=['profile_picture'])
             except Exception as e:
+                logger.error(f"Error uploading profile picture: {str(e)}")
                 return Response({'error': f'Error uploading profile picture: {str(e)}'},
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Update other fields
         serializer = self.get_serializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-        return Response(serializer.data)
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            logger.info("Profile updated successfully")
+            return Response(serializer.data)
+        else:
+            logger.error(f"Serializer errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class ActivateAccountView(APIView):
     def get(self, request):
