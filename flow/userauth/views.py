@@ -55,12 +55,17 @@ class UserProfileUpdateView(UpdateAPIView):
                 # Upload to Google Drive and store the link
                 drive_url = upload_file_to_drive(profile_picture, profile_picture.name)
                 logger.info(f"Profile picture uploaded to Google Drive: {drive_url}")
-                user.profile_picture = drive_url
-                user.save(update_fields=['profile_picture'])
+
+                # Update the profile_picture field in the request data
+                request.data._mutable = True  # Allow modification of request data
+                request.data['profile_picture'] = drive_url
+                request.data._mutable = False  # Restore immutability
             except Exception as e:
                 logger.error(f"Error uploading profile picture: {str(e)}")
-                return Response({'error': f'Error uploading profile picture: {str(e)}'},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(
+                    {'error': f'Error uploading profile picture: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         # Update other fields
         serializer = self.get_serializer(user, data=request.data, partial=True)
