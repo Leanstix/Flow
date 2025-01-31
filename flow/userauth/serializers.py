@@ -72,6 +72,16 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['email', 'university_id']  # Prevent changes to email and university_id
 
+    def validate_profile_picture(self, value):
+        """
+        Custom validation for the profile_picture field.
+        Ensures that the URL is a valid Google Drive URL.
+        """
+        if value:  # Only validate if a value is provided
+            if not value.startswith("https://drive.google.com/uc?id="):
+                raise serializers.ValidationError("Invalid Google Drive URL. The URL must start with 'https://drive.google.com/uc?id='.")
+        return value
+
     def update(self, instance, validated_data):
         interests = validated_data.pop('interests', None)
         instance = super().update(instance, validated_data)
