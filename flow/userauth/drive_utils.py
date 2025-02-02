@@ -6,6 +6,7 @@ import os
 from io import BytesIO
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
+PARENT_FOLDER_ID = os.environ.get('GOOGLE_DRIVE_PARENT_FOLDER_ID')
 
 # Parse the JSON string
 credentials_info = os.environ.get('GOOGLE_DRIVE_CREDENTIALS')
@@ -24,7 +25,7 @@ credentials = service_account.Credentials.from_service_account_info(
 drive_service = build('drive', 'v3', credentials=credentials)
 
 def upload_file_to_drive(file_obj, file_name):
-    file_metadata = {'name': file_name}
+    file_metadata = {'name': file_name, 'parents': [PARENT_FOLDER_ID]}
     mimetype = file_obj.content_type if hasattr(file_obj, 'content_type') else 'application/octet-stream'
     
     # Ensure the file object is in a file-like state
