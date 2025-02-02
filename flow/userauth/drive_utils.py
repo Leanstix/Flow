@@ -39,5 +39,5 @@ def upload_file_to_drive(file_obj, file_name):
     file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
     file_id = file.get('id')
-    return f"https://drive.google.com/uc?export=view&id={file_id}"
+    return f"https://drive.google.com/file/d/{file_id}/preview"
     
