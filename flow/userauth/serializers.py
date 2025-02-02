@@ -78,8 +78,8 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         Ensures that the URL is a valid Google Drive URL.
         """
         if value:  # Only validate if a value is provided
-            if not value.startswith("https://drive.google.com/file/d/"):
-                raise serializers.ValidationError("Invalid Google Drive URL. The URL must start with 'https://drive.google.com/file/d/'.")
+            if not value.startswith("https://drive.google.com/uc?"):
+                raise serializers.ValidationError("Invalid Google Drive URL. The URL must start with 'https://drive.google.com/uc?'.")
         return value
 
     def update(self, instance, validated_data):
