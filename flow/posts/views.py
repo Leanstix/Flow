@@ -118,6 +118,41 @@ class FeedView(APIView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class AllFeedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # Fetch user's friends (both sent and received accepted requests)
+        friends = User.objects.filter(
+            Q(sent_requests__to_user=user, sent_requests__accepted=True) |
+            Q(received_requests__from_user=user, received_requests__accepted=True)
+        ).distinct()
+
+        # Fetch posts from user and friends
+        user_and_friends_posts = Post.objects.filter(Q(user=user) | Q(user__in=friends))
+
+        # Fetch all other posts excluding user's posts
+        other_posts = Post.objects.exclude(user=user)
+
+        # Combine both sets of posts
+        all_posts = user_and_friends_posts | other_posts
+
+        # Annotate with engagement (likes + comments + reposts count)
+        all_posts = all_posts.annotate(
+            engagement=F("likes_count") + F("comments_count") + F("reposts__count")
+        ).order_by("-engagement", "-created_at")
+
+        # Paginate the results
+        paginator = CustomPagination()
+        paginated_posts = paginator.paginate_queryset(all_posts, request, view=self)
+
+        # Serialize the posts
+        serializer = PostSerializer(paginated_posts, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
 class SearchUserPostsView(APIView):
     permission_classes = [IsAuthenticated]
 
