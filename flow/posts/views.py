@@ -69,6 +69,10 @@ class PostView(APIView):
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def delete(self, request, post_id):
+        post = get_object_or_404(Post, id=post_id, user=request.user)
+        post.delete()
+        return Response({"message": "Post deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
     
 class CustomPagination(PageNumberPagination):
     page_size = 10

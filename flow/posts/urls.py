@@ -7,6 +7,7 @@ urlpatterns = [
     path("<int:post_id>/like/", toggle_like, name="toggle_like"),
     path("<int:post_id>/comment/", add_comment, name="add_comment"),
     path("<int:post_id>/repost/", repost, name="repost"),
+    path("<int:post_id>/delete/", PostView.as_view(), name="delete_post"),
     path("<int:post_id>/report/", report_post, name="report_post"),
     path("search/by-user/", SearchUserPostsView.as_view(), name="search_user_posts"),
     path("search/not-by-user/", SearchPostsView.as_view(), name="search_posts"),
