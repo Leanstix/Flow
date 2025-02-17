@@ -25,7 +25,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "id": user.id,
             "username": user.user_name,
             "email": user.email,  # Add any other fields you want to include
-        }
+        } 
 
 # Post Serializer
 class PostSerializer(serializers.ModelSerializer):

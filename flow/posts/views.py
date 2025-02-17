@@ -145,8 +145,8 @@ class AllFeedView(APIView):
 
         # Annotate with engagement (likes + comments + reposts count)
         all_posts = all_posts.annotate(
-            engagement=F("likes_count") + F("comments_count") + F("reposts__count")
-        ).order_by("-engagement", "-created_at")
+            engagement=F("likes") + F("comments") + F("reposts")
+        ).order_by("engagement", "created_at")
 
         # Paginate the results
         paginator = CustomPagination()
@@ -199,3 +199,12 @@ def get_comments(request, post_id):
     serializer = CommentSerializer(paginated_comments, many=True)
     
     return paginator.get_paginated_response(serializer.data)
+
+@api_view(['DELETE'])
+def delete_comment(request, comment_id):
+    """
+    Delete a comment if the authenticated user is the owner.
+    """
+    comment = get_object_or_404(Comment, id=comment_id, user=request.user)
+    comment.delete()
+    return Response({"message": "Comment deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
