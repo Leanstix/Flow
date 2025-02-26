@@ -87,7 +87,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=15,
         validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$')],
         blank=True,
-        null=True
+        null=True,
+        unique=True
     )
 
     university_id = models.CharField(max_length=100, blank=True, null=True)
