@@ -32,7 +32,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         Email = os.environ.get('EMAIL_HOST_USER')
 
        #sending an email to the user to receive their activation link
-        activation_url = f"https://flow-aleshinloye-olamilekan-s-projects.vercel.app/activate?token={user.activation_token}"
+        activation_url = f"http://localhost:3000/activate?token={user.activation_token}"
         '''
         send_mail(
             "Flow User Activation",#subject
