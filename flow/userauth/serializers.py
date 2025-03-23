@@ -33,13 +33,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
        #sending an email to the user to receive their activation link
         activation_url = f"https://flow-aleshinloye-olamilekan-s-projects.vercel.app/activate?token={user.activation_token}"
+        '''
         send_mail(
             "Flow User Activation",#subject
             f"click on the link to activate your account {activation_url}",#message
             Email, #from email
             [user.email], #toemail
             fail_silently=False
-        )
+        )'''
         print(f"Activation link (copy and paste in browser to activate): {activation_url}")
 
         return user
@@ -56,6 +57,7 @@ class UserActivationSerializer(serializers.Serializer):
 
     def save(self):
         token = self.validated_data['token']
+
         user = User.objects.get(activation_token=token)
         user.activate_account()  # Activate the account and clear the token
         return user
