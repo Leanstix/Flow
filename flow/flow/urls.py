@@ -12,9 +12,9 @@ schema_view = get_schema_view(
     openapi.Info(
         title="Your API",
         default_version="v1",
-        description="API documentation",
+        description="API documentation for FLow",
         terms_of_service="https://www.google.com/policies/terms/",
-        contact=openapi.Contact(email="leanstix@gmail.com"),
+        contact=openapi.Contact(email="leanstixx@gmail.com"),
         license=openapi.License(name="BSD License"),
     ),
     public=True,
