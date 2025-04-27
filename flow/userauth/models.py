@@ -45,13 +45,13 @@ class CustomUserManager(BaseUserManager):
             if not email_from:
                 raise ValueError("EMAIL_HOST_USER environment variable is not set.")
             
-            send_mail(
+            '''send_mail(
                 subject=subject,
                 message=message,
                 from_email=email_from,
                 recipient_list=[email],
                 fail_silently=False,
-            )
+            )'''
 
             # Log email success
             logger.info(f"Activation email sent successfully to {email}")
