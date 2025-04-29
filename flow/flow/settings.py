@@ -58,6 +58,21 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ORIGIN_ALLOW_ALL = True
 
+#WebSocket settings
+
+REDIS = os.environ.get('REDIS_URL')
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            # Optional: for password-protected Redis
+            #"PASSWORD": "<your_redis_password>",
+        }
+    }
+}
+
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'Authorization',
 ]
@@ -171,7 +186,8 @@ DATABASES = {
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT'),
         'OPTIONS': {
-            'sslmode': 'require',
+            'connect_timeout': 10,
+            #'sslmode': 'require',
         },
     }
 }

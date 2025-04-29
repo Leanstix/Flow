@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 class RoomSerializer(serializers.ModelSerializer):
-    participants = UserSerializer(many=True, read_only=True)  # Nested serialization
+    participants = UserSerializer(many=True, read_only=False)  # Nested serialization
 
     class Meta:
         model = Room
