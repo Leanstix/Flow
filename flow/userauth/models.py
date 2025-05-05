@@ -120,55 +120,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not self.pk and not self.activation_token and not self.email_verified:
             self.activation_token = get_random_string(32)
         super().save(*args, **kwargs)
-        '''
-        if self.profile_picture:
-            self.resize_profile_picture()'''
-    '''
-    def resize_profile_picture(self):
-        """Resize the profile picture and upload it to Google Drive."""
-        temp_file_path = None  # Ensure it's defined
-
-        try:
-            # Check if the profile picture is already a Drive link
-            if isinstance(self.profile_picture, str) and self.profile_picture.startswith("http"):
-                logging.info("Skipping resizing: profile picture is an external link.")
-                return
-
-            # Load the image from a local path
-            if not self.profile_picture or not hasattr(self.profile_picture, 'path'):
-                logging.error("Profile picture file path is invalid.")
-                return
-
-            img = Image.open(self.profile_picture.path)
-
-            # Resize if needed
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
-            img.thumbnail((400, 400))
-
-            # Convert image to bytes
-            temp_buffer = BytesIO()
-            img.save(temp_buffer, format='JPEG', optimize=True, quality=85)
-            temp_buffer.seek(0)
-
-            # Save the resized image temporarily
-            temp_file_path = f"/tmp/{os.path.basename(self.profile_picture.name)}"
-            with open(temp_file_path, 'wb') as temp_file:
-                temp_file.write(temp_buffer.read())
-
-            # Upload to Google Drive
-            shared_link = upload_file_to_drive(temp_file_path, os.path.basename(temp_file_path))
-            if shared_link:
-                self.profile_picture = shared_link
-                self.save(update_fields=['profile_picture'])
-
-        except Exception as e:
-            logging.error(f"Error processing image: {e}")
-
-        finally:
-            if temp_file_path and os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
-    '''
+        
     def activate_account(self):
         """Activate the user's account."""
         self.is_active = True
