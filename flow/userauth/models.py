@@ -91,7 +91,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         unique=True
     )
 
-    university_id = models.CharField(max_length=100, blank=True, null=True)
+    university_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     university_name = models.CharField(max_length=255, blank=True, null=True)
     department = models.CharField(max_length=255, blank=True, null=True)
     faculty = models.CharField(max_length=255, blank=True, null=True)
