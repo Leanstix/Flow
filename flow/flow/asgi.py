@@ -7,10 +7,10 @@ from channels.security.websocket import AllowedHostsOriginValidator
 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'flow.settings')
-django_asgi_app = get_asgi_application()
+asgi_app = get_asgi_application()
 
 application = ProtocolTypeRouter({
-    "http": django_asgi_app,
+    "http": asgi_app,
     "websocket":  AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             URLRouter(
@@ -18,5 +18,4 @@ application = ProtocolTypeRouter({
             )
         ),
     )
-    
 })
