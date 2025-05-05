@@ -112,7 +112,6 @@ INSTALLED_APPS = [
     'login',
     'messaging',
     'posts',
-    #'rest_framework_simplejwt.token_blacklist',
     'token_generation',
     'requests',
     'profiles',
