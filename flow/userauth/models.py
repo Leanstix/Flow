@@ -82,7 +82,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=50, blank=True, null=True)
     last_name = models.CharField(max_length=50, blank=True, null=True)
     user_name = models.CharField(max_length=50, blank=True, null=True, unique=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     phone_number = models.CharField(
         max_length=15,
         validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$')],
@@ -97,7 +97,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     faculty = models.CharField(max_length=255, blank=True, null=True)
     year_of_study = models.CharField(max_length=1, choices=YEAR_CHOICES, blank=True, null=True)
 
-    bio = models.TextField(blank=True, null=True)
+    bio = models.TextField(blank=True, null=True, max_length=250)
     profile_picture = models.URLField(blank=True, null=True)  # Store Google Drive URL
 
     is_active = models.BooleanField(default=False)
