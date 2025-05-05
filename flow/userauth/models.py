@@ -31,7 +31,7 @@ class CustomUserManager(BaseUserManager):
             )
 
             # Log user creation success
-            logger.info(f"User created successfully: {email}")
+            #logger.info(f"User created successfully: {email}")
 
             # Send activation email
             activation_link = f"{settings.FRONTEND_URL}/activate/{user.activation_token}"
@@ -39,7 +39,7 @@ class CustomUserManager(BaseUserManager):
             message = f"Hi {email},\n\nPlease activate your account using the link below:\n{activation_link}\n\nThank you!"
 
             # Log email attempt
-            logger.info(f"Sending activation email to {email}")
+            #logger.info(f"Sending activation email to {email}")
             
             email_from = os.environ.get('EMAIL_HOST_USER')
             if not email_from:
@@ -54,12 +54,12 @@ class CustomUserManager(BaseUserManager):
             )'''
 
             # Log email success
-            logger.info(f"Activation email sent successfully to {email}")
+            #logger.info(f"Activation email sent successfully to {email}")
 
             return user
 
         except Exception as e:
-            logger.error(f"Error during user registration: {e}")
+            #logger.error(f"Error during user registration: {e}")
             raise ValidationError(f"An error occurred: {str(e)}")
 
     def create_superuser(self, email, university_id, password=None, **extra_fields):
