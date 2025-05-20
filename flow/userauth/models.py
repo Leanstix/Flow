@@ -1,18 +1,18 @@
 import os
-from PIL import Image  # Import Pillow
+#from PIL import Image  # Import Pillow
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 from django.core.validators import RegexValidator, EmailValidator
 from django.utils.crypto import get_random_string
 from django.conf import settings
-from django.core.mail import send_mail
+#from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
-from .drive_utils import upload_file_to_drive
-import logging
+#from .drive_utils import upload_file_to_drive
+'''import logging
 import requests
 from io import BytesIO
 import json
-import os
+import os'''
 
 class CustomUserManager(BaseUserManager):
     def create(self, validated_data):

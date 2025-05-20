@@ -118,7 +118,8 @@ INSTALLED_APPS = [
     'marketplace',
     'password_reset',
     'channels',
-    'calls'
+    'calls',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
