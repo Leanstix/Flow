@@ -73,7 +73,7 @@ class LogoutView(APIView):
                 return Response({"error": "Refresh token missing."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Validate the refresh token
-            token = RefreshToken(refresh_token)
+            #token = RefreshToken(refresh_token)
 
             # Blacklist the token (if blacklisting is enabled)
             # token.blacklist()
