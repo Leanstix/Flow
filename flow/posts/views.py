@@ -213,7 +213,7 @@ class SearchUserPostsView(APIView):
             user_posts = user_posts.filter(content__icontains=query)
         user_posts = user_posts.order_by("-created_at")
 
-        paginator = PageNumberPagination()
+        paginator = CustomPagination()
         paginated_posts = paginator.paginate_queryset(user_posts, request, view=self)
         serializer = PostSerializer(paginated_posts, many=True, context={"request": request})
         return paginator.get_paginated_response(serializer.data)
