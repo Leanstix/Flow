@@ -19,7 +19,15 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def notification_created(self, event):
+        recipient_id = event.get('recipient_id') or event.get('notification', {}).get('recipient')
+        if int(recipient_id or 0) != int(self.user.id):
+            return
+
+        notification = event.get('notification')
+        if not notification or int(notification.get('recipient') or 0) != int(self.user.id):
+            return
+
         await self.send_json({
             'type': 'notification.created',
-            'notification': event['notification'],
+            'notification': notification,
         })

@@ -43,7 +43,7 @@ jobs:
         run: python manage.py makemigrations --check --dry-run 2>&1 | tee migration-check.log
 
       - name: Run backend tests
-        run: python manage.py test userauth login profiles posts messaging notifications calls 2>&1 | tee test.log
+        run: python manage.py test userauth login profiles posts messaging notifications calls communities marketplace 2>&1 | tee test.log
 
       - name: Upload backend diagnostics
         if: always()

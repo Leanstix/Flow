@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     'messaging',
     'posts',
     'notifications',
+    'communities',
     'token_generation',
     'requests',
     'profiles',
