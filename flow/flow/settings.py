@@ -1,27 +1,20 @@
 import os
 from pathlib import Path
+from datetime import timedelta
+
 from corsheaders.defaults import default_headers
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 from dotenv import load_dotenv
 
 load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 PORT = os.environ.get('PORT')
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get('SECRET_KEY', 'unsafe-dev-secret-key')
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 LOGGING = {
     'version': 1,
@@ -37,7 +30,12 @@ LOGGING = {
     },
 }
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'flow-e9ec.onrender.com', 'flow-aleshinloye-olamilekan-s-projects.vercel.app']
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    'flow-e9ec.onrender.com',
+    'flow-aleshinloye-olamilekan-s-projects.vercel.app',
+]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -50,41 +48,19 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',  # Your frontend domain
+    'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://flow-e9ec.onrender.com:10000',
-    'https://flow-aleshinloye-olamilekan-s-projects.vercel.app'
+    'https://flow-aleshinloye-olamilekan-s-projects.vercel.app',
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
-
-#WebSocket settings
-
-REDIS = os.environ.get('REDIS_URL')
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # Optional: for password-protected Redis
-            #"PASSWORD": "<your_redis_password>",
-        }
-    }
-}
-
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    'Authorization',
-]
-
-# Application definition
+CORS_ALLOW_HEADERS = list(default_headers) + ['Authorization']
 
 AUTHENTICATION_BACKENDS = [
     'login.auth_backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
-
-from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
@@ -95,9 +71,8 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-
 INSTALLED_APPS = [
-    "daphne",
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -112,6 +87,7 @@ INSTALLED_APPS = [
     'login',
     'messaging',
     'posts',
+    'notifications',
     'token_generation',
     'requests',
     'profiles',
@@ -157,29 +133,50 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
         },
-    },
+    }
 ]
 
 WSGI_APPLICATION = 'flow.wsgi.application'
-
 ASGI_APPLICATION = 'flow.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [os.getenv(REDIS)],
-        },
-    },
-}
+REDIS_URL = os.environ.get('REDIS_URL') or os.environ.get('REDIS')
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'flow-local-cache',
+        },
+    }
+
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
         'NAME': os.environ.get('DB_NAME'),
         'USER': os.environ.get('DB_USER'),
         'PASSWORD': os.environ.get('DB_PASSWORD'),
@@ -187,59 +184,30 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT'),
         'OPTIONS': {
             'connect_timeout': 10,
-            #'sslmode': 'require',
         },
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-AUTH_USER_MODEL = 'userauth.User'  # Replace 'userauth' with your app name if different
-
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
+AUTH_USER_MODEL = 'userauth.User'
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL')
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#Email settings
 EMAIL_HOST = os.environ.get('EMAIL_HOST')
 EMAIL_PORT = os.environ.get('EMAIL_PORT')
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
