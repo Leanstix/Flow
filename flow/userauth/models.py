@@ -1,70 +1,42 @@
 import os
-#from PIL import Image  # Import Pillow
-from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
-from django.core.validators import RegexValidator, EmailValidator
-from django.utils.crypto import get_random_string
+
 from django.conf import settings
-#from django.core.mail import send_mail
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 from django.core.exceptions import ValidationError
-#from .drive_utils import upload_file_to_drive
-'''import logging
-import requests
-from io import BytesIO
-import json
-import os'''
+from django.core.validators import EmailValidator, RegexValidator
+from django.db import models
+from django.utils.crypto import get_random_string
+
 
 class CustomUserManager(BaseUserManager):
-    def create(self, validated_data):
-        try:
-            # Extracting necessary fields
-            email = validated_data['email']
-            university_id = validated_data['university_id']
-            password = validated_data['password']
+    """Custom manager for Flow users.
 
-            # Create the user
-            user = User.objects.create_user(
-                email=email,
-                university_id=university_id,
-                password=password,
-                **{k: v for k, v in validated_data.items() if k not in ['email', 'university_id', 'password']}
-            )
+    The previous implementation overrode ``create`` with a serializer-shaped
+    signature and then called an undefined ``create_user`` from
+    ``create_superuser``. That broke Django's normal user creation APIs,
+    tests, fixtures, and createsuperuser.
+    """
 
-            # Log user creation success
-            #logger.info(f"User created successfully: {email}")
+    def create_user(self, email, university_id=None, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Users must have an email address.")
 
-            # Send activation email
-            activation_link = f"{settings.FRONTEND_URL}/activate/{user.activation_token}"
-            subject = "Account Activation"
-            message = f"Hi {email},\n\nPlease activate your account using the link below:\n{activation_link}\n\nThank you!"
+        email = self.normalize_email(email)
+        user = self.model(email=email, university_id=university_id, **extra_fields)
 
-            # Log email attempt
-            #logger.info(f"Sending activation email to {email}")
-            
-            email_from = os.environ.get('EMAIL_HOST_USER')
-            if not email_from:
-                raise ValueError("EMAIL_HOST_USER environment variable is not set.")
-            
-            '''send_mail(
-                subject=subject,
-                message=message,
-                from_email=email_from,
-                recipient_list=[email],
-                fail_silently=False,
-            )'''
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
 
-            # Log email success
-            #logger.info(f"Activation email sent successfully to {email}")
-
-            return user
-
-        except Exception as e:
-            #logger.error(f"Error during user registration: {e}")
-            raise ValidationError(f"An error occurred: {str(e)}")
+        user.save(using=self._db)
+        return user
 
     def create_superuser(self, email, university_id, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('email_verified', True)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError("Superuser must have is_staff=True.")
@@ -72,6 +44,24 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Superuser must have is_superuser=True.")
 
         return self.create_user(email, university_id, password, **extra_fields)
+
+    def create(self, *args, **kwargs):
+        """Keep backward compatibility with older serializer-style calls.
+
+        Some early code used ``User.objects.create(validated_data)``. Normal
+        Django code uses ``User.objects.create(email=..., password=...)``. This
+        supports both while ensuring passwords are always hashed.
+        """
+        if args and len(args) == 1 and isinstance(args[0], dict):
+            data = args[0].copy()
+            password = data.pop('password', None)
+            return self.create_user(password=password, **data)
+
+        if 'password' in kwargs:
+            password = kwargs.pop('password')
+            return self.create_user(password=password, **kwargs)
+
+        return super().create(*args, **kwargs)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -88,7 +78,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         validators=[RegexValidator(regex=r'^\+?1?\d{9,15}$')],
         blank=True,
         null=True,
-        unique=True
+        unique=True,
     )
 
     university_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
@@ -98,7 +88,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     year_of_study = models.CharField(max_length=1, choices=YEAR_CHOICES, blank=True, null=True)
 
     bio = models.TextField(blank=True, null=True, max_length=250)
-    profile_picture = models.URLField(blank=True, null=True)  # Store Google Drive URL
+    profile_picture = models.URLField(blank=True, null=True)
+    interests = models.ManyToManyField('Interest', related_name='interested_users', blank=True)
 
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
@@ -111,16 +102,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['university_id'] 
+    REQUIRED_FIELDS = ['university_id']
 
     def __str__(self):
-        return f"{self.email}"
+        return self.email
 
     def save(self, *args, **kwargs):
         if not self.pk and not self.activation_token and not self.email_verified:
             self.activation_token = get_random_string(32)
         super().save(*args, **kwargs)
-        
+
     def activate_account(self):
         """Activate the user's account."""
         self.is_active = True

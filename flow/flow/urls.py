@@ -10,9 +10,9 @@ from django.http import JsonResponse
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Your API",
+        title="Flow API",
         default_version="v1",
-        description="API documentation for FLow",
+        description="API documentation for Flow",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="leanstixx@gmail.com"),
         license=openapi.License(name="BSD License"),
@@ -26,17 +26,18 @@ urlpatterns = [
     path('api/adds/', include('marketplace.urls')),
     path('api/login/', include('login.urls')),
     path('api/', include('messaging.urls')),
-    path('api/userauth/', include('userauth.urls')),  # Ensure 'userauth.urls' exists and is correct
+    path('api/userauth/', include('userauth.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('api/posts/', include('posts.urls')),
+    path('api/notifications/', include('notifications.urls')),
     path('api/token/', include('token_generation.urls')),
     path('api/requests/', include('requests.urls')),
     path('api/profiles/', include('profiles.urls')),
     path('', lambda request: JsonResponse({'message': 'Welcome to the API of Flow!'})),
     path('api/reset-password/', include('password_reset.urls')),
-    path('api/call/', include('calls.urls'))
+    path('api/call/', include('calls.urls')),
 ]
 
-if settings.DEBUG:  # Serve media files only in development
+if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

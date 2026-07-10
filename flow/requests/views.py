@@ -1,13 +1,18 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import FriendRequest, Conversation
-from .serializers import FriendRequestSerializer, UserSerializer, FriendSerializer
 from django.db.models import Q
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from notifications.models import Notification
+from notifications.services import create_notification
+
+from .models import FriendRequest
+from .serializers import FriendRequestSerializer, FriendSerializer, UserSerializer
 
 User = get_user_model()
+
 
 class SearchUserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -24,6 +29,7 @@ class SearchUserView(APIView):
         serializer = UserSerializer(users, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 class FriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -39,30 +45,48 @@ class FriendRequestView(APIView):
 
         try:
             to_user = User.objects.get(id=to_user_id)
-            if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
-                return Response({"error": "Friend request already sent."}, status=status.HTTP_400_BAD_REQUEST)
-
-            friend_request = FriendRequest.objects.create(from_user=request.user, to_user=to_user)
-            return Response(FriendRequestSerializer(friend_request).data, status=status.HTTP_201_CREATED)
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if to_user == request.user:
+            return Response({"error": "You cannot send a friend request to yourself."}, status=status.HTTP_400_BAD_REQUEST)
+
+        friend_request, created = FriendRequest.objects.get_or_create(from_user=request.user, to_user=to_user)
+        if not created:
+            return Response({"error": "Friend request already sent."}, status=status.HTTP_400_BAD_REQUEST)
+
+        create_notification(
+            recipient=to_user,
+            actor=request.user,
+            verb=Notification.Verb.FRIEND_REQUEST,
+            message=f"{request.user.user_name or request.user.email} sent you a friend request.",
+        )
+        return Response(FriendRequestSerializer(friend_request).data, status=status.HTTP_201_CREATED)
 
     def patch(self, request, pk):
         try:
             friend_request = FriendRequest.objects.get(id=pk, to_user=request.user)
-            friend_request.accepted = True
-            friend_request.save()
+        except FriendRequest.DoesNotExist:
+            return Response({"error": "Friend request not found."}, status=status.HTTP_404_NOT_FOUND)
 
-            # Prepare response data
-            response_data = {
+        friend_request.accepted = True
+        friend_request.save(update_fields=["accepted"])
+        create_notification(
+            recipient=friend_request.from_user,
+            actor=request.user,
+            verb=Notification.Verb.FRIEND_ACCEPTED,
+            message=f"{request.user.user_name or request.user.email} accepted your friend request.",
+        )
+
+        return Response(
+            {
                 "message": "Friend request accepted.",
                 "from_user_id": friend_request.from_user.id,
                 "to_user_id": friend_request.to_user.id,
-            }
+            },
+            status=status.HTTP_200_OK,
+        )
 
-            return Response(response_data, status=status.HTTP_200_OK)
-        except FriendRequest.DoesNotExist:
-            return Response({"error": "Friend request not found."}, status=status.HTTP_404_NOT_FOUND)
 
 class ViewFriendsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -73,5 +97,5 @@ class ViewFriendsView(APIView):
             Q(received_requests__from_user=request.user, received_requests__accepted=True)
         ).distinct()
 
-        serializer = FriendSerializer(friends, many=True, context={"request": request}) 
+        serializer = FriendSerializer(friends, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
