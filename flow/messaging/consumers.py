@@ -20,6 +20,7 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+        await self.mark_delivered()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'group_name'):
@@ -39,12 +40,28 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
             )
             return
 
+        if event_type == 'read':
+            await self.mark_read()
+            return
+
         message_content = content.get('content', '')
         if not isinstance(message_content, str) or not message_content.strip():
             await self.send_json({'type': 'error', 'error': 'Message content cannot be empty.'})
             return
 
-        message = await self.create_message(message_content.strip())
+        reply_to = content.get('reply_to')
+        try:
+            reply_to = int(reply_to) if reply_to not in (None, '') else None
+        except (TypeError, ValueError):
+            await self.send_json({'type': 'error', 'error': 'reply_to must be a valid message id.'})
+            return
+
+        try:
+            message = await self.create_message(message_content.strip(), reply_to)
+        except ValueError as exc:
+            await self.send_json({'type': 'error', 'error': str(exc)})
+            return
+
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -57,6 +74,29 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({
             'type': 'message.created',
             'message': event['message'],
+        })
+
+    async def chat_message_updated(self, event):
+        await self.send_json({
+            'type': 'message.updated',
+            'message': event['message'],
+        })
+
+    async def chat_message_deleted(self, event):
+        await self.send_json({
+            'type': 'message.deleted',
+            'message': event['message'],
+        })
+
+    async def chat_receipt(self, event):
+        await self.send_json({
+            'type': 'message.receipt',
+            'message_id': event['message_id'],
+            'status': event['status'],
+            'recipient_count': event['recipient_count'],
+            'delivered_count': event['delivered_count'],
+            'read_count': event['read_count'],
+            'is_read': event['is_read'],
         })
 
     async def chat_typing(self, event):
@@ -75,11 +115,42 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
         return Conversation.objects.filter(id=self.conversation_id, participants=self.user).exists()
 
     @database_sync_to_async
-    def create_message(self, content):
-        from .models import Conversation, Message
-        from .services import create_message_notifications, serialize_message
+    def mark_delivered(self):
+        from .models import Conversation
+        from .services import mark_conversation_delivered
 
         conversation = Conversation.objects.get(id=self.conversation_id)
-        message = Message.objects.create(conversation=conversation, sender=self.user, content=content)
-        create_message_notifications(message)
+        return mark_conversation_delivered(conversation, self.user)
+
+    @database_sync_to_async
+    def mark_read(self):
+        from .models import Conversation
+        from .services import mark_conversation_read
+
+        conversation = Conversation.objects.get(id=self.conversation_id)
+        return mark_conversation_read(conversation, self.user)
+
+    @database_sync_to_async
+    def create_message(self, content, reply_to_id=None):
+        from django.db import transaction
+
+        from .models import Conversation, Message
+        from .services import create_message_notifications, ensure_message_receipts, serialize_message
+
+        conversation = Conversation.objects.get(id=self.conversation_id)
+        reply_to = None
+        if reply_to_id is not None:
+            reply_to = Message.objects.filter(id=reply_to_id, conversation=conversation).first()
+            if not reply_to:
+                raise ValueError('Replies must reference a message in the same conversation.')
+
+        with transaction.atomic():
+            message = Message.objects.create(
+                conversation=conversation,
+                sender=self.user,
+                content=content,
+                reply_to=reply_to,
+            )
+            ensure_message_receipts(message)
+            create_message_notifications(message)
         return serialize_message(message)
