@@ -1,61 +1,45 @@
-from django.test import TestCase
-from django.core.files.uploadedfile import SimpleUploadedFile
-from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
-from .drive_utils import upload_file_to_drive  # Import your function
+from django.test import TestCase
+
+from .models import Interest
 
 User = get_user_model()
 
-class DriveUploadTestCase(TestCase):
-    def test_upload_file_to_drive(self):
-        """
-        Test that the `upload_file_to_drive` function works correctly.
-        """
-        # Create a dummy file for testing
-        dummy_file = SimpleUploadedFile(
-            "test.jpg",  # File name
-            b"file_content",  # File content (bytes)
-            content_type="image/jpeg"  # MIME type
+
+class UserManagerTests(TestCase):
+    def test_create_user_hashes_password_and_normalizes_email(self):
+        user = User.objects.create_user(
+            email='Student@Example.COM',
+            university_id='UNI001',
+            password='pass12345',
+            user_name='student',
         )
 
-        try:
-            # Call the upload function
-            drive_url = upload_file_to_drive(dummy_file, "test.jpg")
-            print(f"File uploaded successfully: {drive_url}")
+        self.assertEqual(user.email, 'Student@example.com')
+        self.assertTrue(user.check_password('pass12345'))
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
 
-            # Assert that the function returns a valid URL
-            self.assertIsNotNone(drive_url)
-            self.assertTrue(drive_url.startswith("https://drive.google.com/uc?id="))
-        except Exception as e:
-            self.fail(f"Error uploading file: {str(e)}")
-'''
-class UserProfileUpdateTestCase(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.user = User.objects.create_user(
-            email="leanstixx@gmail.com",
-            university_id="231472",
-            password="Ka1,@yada24.@sa"
-        )
-        self.client.force_authenticate(user=self.user)
-
-    def test_profile_picture_update(self):
-        # Create a dummy file for testing
-        dummy_file = SimpleUploadedFile(
-            "test.jpg",  # File name
-            b"file_content",  # File content (bytes)
-            content_type="image/jpeg"  # MIME type
+    def test_create_superuser_sets_required_flags(self):
+        admin = User.objects.create_superuser(
+            email='admin@example.com',
+            university_id='ADM001',
+            password='pass12345',
+            user_name='admin',
         )
 
-        # Update profile with the dummy file
-        response = self.client.patch(
-            "/api/userauth/profile/update/",
-            {"profile_picture": dummy_file},
-            format="multipart"
+        self.assertTrue(admin.is_staff)
+        self.assertTrue(admin.is_superuser)
+
+    def test_user_interests_relation_matches_profile_serializer_expectation(self):
+        user = User.objects.create_user(
+            email='interest@example.com',
+            university_id='INT001',
+            password='pass12345',
+            user_name='interest_user',
         )
+        interest = Interest.objects.create(name='Software Engineering')
 
-        # Check the response
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["profile_picture"].startswith("https://drive.google.com/uc?id="))
+        user.interests.add(interest)
 
-'''
+        self.assertEqual(list(user.interests.all()), [interest])
