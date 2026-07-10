@@ -4,13 +4,12 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
-from flow.middleware import JwtAuthMiddlewareStack
-
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'flow.settings')
 
 django_asgi_app = get_asgi_application()
 
+from flow.middleware import JwtAuthMiddlewareStack  # noqa: E402
 from flow.routing import websocket_urlpatterns  # noqa: E402
 
 application = ProtocolTypeRouter({
