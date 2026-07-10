@@ -23,7 +23,9 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/adds/', include('marketplace.urls')),
+    path('api/marketplace/', include('marketplace.urls')),
+    path('api/adds/', include('marketplace.urls')),  # Backward-compatible alias.
+    path('api/groups/', include('communities.urls')),
     path('api/login/', include('login.urls')),
     path('api/', include('messaging.urls')),
     path('api/', include('notifications.urls')),
