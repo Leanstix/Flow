@@ -1,7 +1,12 @@
-from django.urls import re_path
+from django.urls import path, re_path
+
 from calls.consumers import CallConsumer
+from messaging.consumers import ConversationConsumer
+from notifications.consumers import NotificationConsumer
+
 
 websocket_urlpatterns = [
-    re_path(r'ws/call/(?P<room_name>\w+)/$', CallConsumer.as_asgi()),
+    re_path(r'ws/call/(?P<room_name>[-\w]+)/$', CallConsumer.as_asgi()),
+    path('ws/conversations/<int:conversation_id>/', ConversationConsumer.as_asgi()),
+    path('ws/notifications/', NotificationConsumer.as_asgi()),
 ]
-# -*- coding: utf-8 -*-
