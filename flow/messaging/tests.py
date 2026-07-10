@@ -1,4 +1,5 @@
 from asgiref.sync import async_to_sync
+from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase, override_settings
@@ -75,7 +76,8 @@ class MessagingApiTests(APITestCase):
         response = self.client.get(reverse('message-list'))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['results'] if isinstance(response.data, dict) and 'results' in response.data else response.data, [])
+        response_payload = response.data['results'] if isinstance(response.data, dict) and 'results' in response.data else response.data
+        self.assertEqual(response_payload, [])
 
         create_response = self.client.post(
             reverse('message-list'),
@@ -160,19 +162,6 @@ class MessagingWebsocketTests(TransactionTestCase):
 
         self.assertEqual(await self._message_count(), 1)
         self.assertEqual(await self._notification_count(), 1)
-
-    @async_to_sync
-    async def noop(self):
-        pass
-
-    @staticmethod
-    @async_to_sync
-    async def _unused():
-        return None
-
-    @staticmethod
-    def _sync_count(model, **filters):
-        return model.objects.filter(**filters).count()
 
     @database_sync_to_async
     def _message_count(self):
