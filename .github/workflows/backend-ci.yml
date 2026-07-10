@@ -37,10 +37,22 @@ jobs:
         run: pip install -r requirement.txt
 
       - name: Validate Django configuration
-        run: python manage.py check
+        run: python manage.py check 2>&1 | tee django-check.log
 
       - name: Verify migrations are committed
-        run: python manage.py makemigrations --check --dry-run
+        run: python manage.py makemigrations --check --dry-run 2>&1 | tee migration-check.log
 
       - name: Run backend tests
-        run: python manage.py test userauth login profiles posts messaging notifications calls
+        run: python manage.py test userauth login profiles posts messaging notifications calls 2>&1 | tee test.log
+
+      - name: Upload backend diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-ci-logs
+          path: |
+            flow/django-check.log
+            flow/migration-check.log
+            flow/test.log
+          if-no-files-found: ignore
+          retention-days: 3
