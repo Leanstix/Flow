@@ -1,28 +1,39 @@
-import os  # Add this import
+import logging
+
+from django.contrib.auth import get_user_model
 from rest_framework import status
+from rest_framework.generics import UpdateAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import UserRegistrationSerializer, UserActivationSerializer, UserProfileUpdateSerializer, ChangePasswordSerializer
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.generics import UpdateAPIView
-from django.contrib.auth import get_user_model
-from rest_framework.permissions import AllowAny
-from .models import User
-from .drive_utils import upload_file_to_drive
-import logging
+
+from .cloudinary_utils import upload_profile_picture
+from .emails import ActivationEmailError
+from .serializers import (
+    ChangePasswordSerializer,
+    UserActivationSerializer,
+    UserProfileUpdateSerializer,
+    UserRegistrationSerializer,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
+
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except ActivationEmailError:
+                logger.exception('Registration failed because the activation email was not sent')
+                return Response(
+                    {'error': 'We could not send the activation email. Please try again.'},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
             return Response({"message": "Account created successfully! Please check your email to activate your account."}, status=status.HTTP_201_CREATED)
-        else:
-            print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserActivationView(APIView):
@@ -45,30 +56,26 @@ class UserProfileUpdateView(UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         user = self.get_object()
-        logger.info(f"Updating profile for user: {user.email}")
+        logger.info("Updating profile for user: %s", user.email)
+        data = request.data.copy()
 
         # Check if a new profile picture is uploaded
         profile_picture = request.FILES.get('profile_picture')
         if profile_picture:
-            logger.info(f"New profile picture uploaded: {profile_picture.name}")
+            logger.info("New profile picture uploaded: %s", profile_picture.name)
             try:
-                # Upload to Google Drive and store the link
-                drive_url = upload_file_to_drive(profile_picture, profile_picture.name)
-                logger.info(f"Profile picture uploaded to Google Drive: {drive_url}")
-
-                # Update the profile_picture field in the request data
-                request.data._mutable = True  # Allow modification of request data
-                request.data['profile_picture'] = drive_url
-                request.data._mutable = False  # Restore immutability
-            except Exception as e:
-                logger.error(f"Error uploading profile picture: {str(e)}")
+                cloudinary_url = upload_profile_picture(profile_picture)
+                logger.info("Profile picture uploaded to Cloudinary: %s", cloudinary_url)
+                data['profile_picture'] = cloudinary_url
+            except Exception as exc:
+                logger.exception("Error uploading profile picture to Cloudinary")
                 return Response(
-                    {'error': f'Error uploading profile picture: {str(e)}'},
+                    {'error': f'Error uploading profile picture: {exc}'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
         # Update other fields
-        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer = self.get_serializer(user, data=data, partial=True)
         if serializer.is_valid():
             self.perform_update(serializer)
             logger.info("Profile updated successfully")

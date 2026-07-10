@@ -62,5 +62,7 @@ class LogoutView(APIView):
         except TokenError:
             return Response({'error': 'Invalid or expired refresh token.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Stateless JWTs remain valid until expiry unless the blacklist app is
+        # installed. The client always removes both tokens on this response.
         logger.info('Successfully logged out user.')
         return Response({'message': 'Successfully logged out.'}, status=status.HTTP_200_OK)
