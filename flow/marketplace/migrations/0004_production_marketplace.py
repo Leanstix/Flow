@@ -4,6 +4,7 @@ import django.core.validators
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
+from django.utils import timezone
 
 
 def normalize_legacy_prices(apps, schema_editor):
@@ -73,7 +74,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='advertisement',
             name='updated_at',
-            field=models.DateTimeField(auto_now=True),
+            field=models.DateTimeField(auto_now=True, default=timezone.now),
+            preserve_default=False,
         ),
         migrations.AddField(
             model_name='advertisement',
@@ -132,7 +134,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='advertisement',
-            constraint=models.CheckConstraint(condition=models.Q(('price__gte', 0), ('price__isnull', True), _connector='OR'), name='marketplace_price_non_negative'),
+            constraint=models.CheckConstraint(condition=models.Q(price__gte=0) | models.Q(price__isnull=True), name='marketplace_price_non_negative'),
         ),
         migrations.AddIndex(
             model_name='advertisement',
