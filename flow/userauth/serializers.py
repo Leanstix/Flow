@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
 from rest_framework import serializers
 
+from .emails import send_activation_email
 from .models import Interest
 
 User = get_user_model()
@@ -20,9 +22,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email', 'university_id', 'password']
 
+    @transaction.atomic
     def create(self, validated_data):
         password = validated_data.pop('password')
-        return User.objects.create_user(password=password, **validated_data)
+        user = User.objects.create_user(password=password, **validated_data)
+        send_activation_email(user)
+        return user
 
 
 class UserActivationSerializer(serializers.Serializer):
