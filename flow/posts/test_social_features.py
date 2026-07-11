@@ -1,0 +1,105 @@
+import json
+from io import BytesIO
+from tempfile import TemporaryDirectory
+
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from django.urls import reverse
+from PIL import Image
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from notifications.models import Notification
+
+from .models import Comment, Hashtag, Post, PostMedia
+
+User = get_user_model()
+
+
+def tiny_png():
+    output = BytesIO()
+    Image.new('RGB', (8, 8), 'white').save(output, format='PNG')
+    return SimpleUploadedFile('campus.png', output.getvalue(), content_type='image/png')
+
+
+class SocialFeatureTests(APITestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(
+            email='social-author@example.com', university_id='SOC001',
+            password='pass12345', user_name='author', is_active=True,
+        )
+        self.mentioned = User.objects.create_user(
+            email='mentioned@example.com', university_id='SOC002',
+            password='pass12345', user_name='mentioned_user', is_active=True,
+        )
+        self.client.force_authenticate(self.author)
+
+    def test_post_indexes_hashtags_and_notifies_mentions(self):
+        response = self.client.post(
+            reverse('posts'),
+            {'content': 'Building for #CampusTech with @mentioned_user'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        post = Post.objects.get(pk=response.data['id'])
+        self.assertTrue(post.hashtags.filter(name='campustech').exists())
+        self.assertTrue(post.mentioned_users.filter(pk=self.mentioned.pk).exists())
+        self.assertTrue(Notification.objects.filter(
+            recipient=self.mentioned,
+            actor=self.author,
+            verb=Notification.Verb.MENTION,
+            target_post=post,
+        ).exists())
+
+        search = self.client.get(reverse('hashtag_posts', kwargs={'tag': 'campustech'}))
+        self.assertEqual(search.status_code, status.HTTP_200_OK)
+        self.assertEqual(search.data['results'][0]['id'], post.id)
+
+    def test_replies_can_continue_without_a_depth_limit(self):
+        post = Post.objects.create(user=self.author, content='Thread')
+        root = Comment.objects.create(user=self.author, post=post, content='Root')
+        first = Comment.objects.create(user=self.mentioned, post=post, parent=root, content='First')
+        second = Comment.objects.create(user=self.author, post=post, parent=first, content='Second')
+        third = Comment.objects.create(user=self.mentioned, post=post, parent=second, content='Third')
+
+        self.assertEqual((root.depth, first.depth, second.depth, third.depth), (0, 1, 2, 3))
+        self.assertEqual(first.root_id, root.id)
+        response = self.client.get(reverse('get_comment_replies', kwargs={'comment_id': root.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['depth'] for item in response.data['results']], [1, 2, 3])
+
+    def test_image_post_is_stored_as_normalized_media(self):
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse('posts'),
+                {'content': 'Photo update', 'platform': 'mobile', 'media': [tiny_png()]},
+                format='multipart',
+            )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        media = PostMedia.objects.get(post_id=response.data['id'])
+        self.assertEqual(media.media_type, PostMedia.MediaType.IMAGE)
+        self.assertTrue(media.url)
+
+    def test_web_video_limit_is_ninety_seconds(self):
+        video = SimpleUploadedFile('long.mp4', b'not-read-because-validation-runs-first', content_type='video/mp4')
+        response = self.client.post(
+            reverse('posts'),
+            {
+                'content': 'Too long for web',
+                'platform': 'web',
+                'media': [video],
+                'media_metadata': json.dumps([{'duration_seconds': 91}]),
+            },
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('media', response.data)
+
+    def test_hashtag_suggestions_are_ranked(self):
+        popular = Hashtag.objects.create(name='popular')
+        post = Post.objects.create(user=self.author, content='#popular')
+        post.hashtags.add(popular)
+        response = self.client.get(reverse('hashtag_search'), {'q': 'pop'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]['name'], 'popular')
