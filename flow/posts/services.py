@@ -29,10 +29,12 @@ def extract_mentions(text):
 
 def _mentioned_users(text):
     users = []
+    seen = set()
     for username in extract_mentions(text):
         user = User.objects.filter(user_name__iexact=username, is_active=True).first()
-        if user and user.pk not in {item.pk for item in users}:
+        if user and user.pk not in seen:
             users.append(user)
+            seen.add(user.pk)
     return users
 
 
@@ -85,7 +87,7 @@ def parse_media_metadata(raw):
     raise ValidationError({'media_metadata': 'Media metadata must be a list.'})
 
 
-def create_post_media(post, request, metadata=None):
+def create_post_media(post, request, metadata=None, max_video_seconds=MAX_VIDEO_SECONDS):
     uploads = list(request.FILES.getlist('media')) if request else []
     if not uploads:
         return []
@@ -123,8 +125,8 @@ def create_post_media(post, request, metadata=None):
                     raise ValidationError({'media_metadata': 'Video duration and trim values must be numbers.'}) from exc
                 if effective_duration <= 0:
                     raise ValidationError({'media_metadata': 'A valid video duration is required.'})
-                if effective_duration > MAX_VIDEO_SECONDS:
-                    raise ValidationError({'media': f'Videos must be {MAX_VIDEO_SECONDS} seconds or shorter after trimming.'})
+                if effective_duration > max_video_seconds:
+                    raise ValidationError({'media': f'Videos must be {max_video_seconds} seconds or shorter after trimming.'})
                 stored = store_upload(
                     upload,
                     folder='flow/posts/videos',
@@ -133,8 +135,8 @@ def create_post_media(post, request, metadata=None):
                     trim_end_seconds=trim_end,
                     declared_duration_seconds=duration,
                 )
-                if stored.get('duration_seconds') and float(stored['duration_seconds']) > MAX_VIDEO_SECONDS:
-                    raise ValidationError({'media': f'Videos must be {MAX_VIDEO_SECONDS} seconds or shorter after trimming.'})
+                if stored.get('duration_seconds') and float(stored['duration_seconds']) > max_video_seconds:
+                    raise ValidationError({'media': f'Videos must be {max_video_seconds} seconds or shorter after trimming.'})
                 media_type = PostMedia.MediaType.VIDEO
             else:
                 raise ValidationError({'media': f'Unsupported post media type: {mime_type or "unknown"}.'})
