@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Conversation, Message
+from .models import Conversation, Message, MessageAttachment
 
 User = get_user_model()
 
@@ -10,6 +10,33 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'user_name', 'profile_picture']
+
+
+def absolute_url(request, value):
+    if not value:
+        return ''
+    if value.startswith(('http://', 'https://')) or not request:
+        return value
+    return request.build_absolute_uri(value)
+
+
+class MessageAttachmentSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MessageAttachment
+        fields = [
+            'id', 'kind', 'url', 'thumbnail_url', 'file_name', 'mime_type',
+            'size_bytes', 'duration_seconds', 'metadata', 'position', 'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_url(self, obj):
+        return absolute_url(self.context.get('request'), obj.url)
+
+    def get_thumbnail_url(self, obj):
+        return absolute_url(self.context.get('request'), obj.thumbnail_url)
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -26,45 +53,39 @@ class MessageSerializer(serializers.ModelSerializer):
     recipient_count = serializers.SerializerMethodField()
     is_read = serializers.SerializerMethodField()
     is_deleted = serializers.SerializerMethodField()
+    attachments = MessageAttachmentSerializer(many=True, read_only=True)
+    attachment_type = serializers.ChoiceField(
+        choices=MessageAttachment.Kind.choices,
+        required=False,
+        write_only=True,
+    )
+    attachment_payload = serializers.JSONField(required=False, write_only=True)
+    attachment_duration_seconds = serializers.FloatField(required=False, write_only=True, min_value=0)
+    files = serializers.ListField(
+        child=serializers.FileField(),
+        required=False,
+        write_only=True,
+        max_length=10,
+    )
 
     class Meta:
         model = Message
         fields = [
-            'id',
-            'conversation',
-            'sender',
-            'content',
-            'timestamp',
-            'reply_to',
-            'reply_preview',
-            'edited_at',
-            'deleted_at',
-            'is_deleted',
-            'status',
-            'recipient_count',
-            'delivered_count',
-            'read_count',
-            'is_read',
+            'id', 'conversation', 'sender', 'content', 'timestamp', 'reply_to',
+            'reply_preview', 'edited_at', 'deleted_at', 'is_deleted', 'status',
+            'recipient_count', 'delivered_count', 'read_count', 'is_read',
+            'attachments', 'attachment_type', 'attachment_payload',
+            'attachment_duration_seconds', 'files',
         ]
         read_only_fields = [
-            'id',
-            'sender',
-            'timestamp',
-            'reply_preview',
-            'edited_at',
-            'deleted_at',
-            'is_deleted',
-            'status',
-            'recipient_count',
-            'delivered_count',
-            'read_count',
-            'is_read',
+            'id', 'sender', 'timestamp', 'reply_preview', 'edited_at',
+            'deleted_at', 'is_deleted', 'status', 'recipient_count',
+            'delivered_count', 'read_count', 'is_read', 'attachments',
         ]
+        extra_kwargs = {'content': {'required': False, 'allow_blank': True}}
 
     def validate_content(self, value):
-        if not value or not value.strip():
-            raise serializers.ValidationError('Message content cannot be empty.')
-        value = value.strip()
+        value = (value or '').strip()
         if len(value) > 5000:
             raise serializers.ValidationError('Message content cannot exceed 5000 characters.')
         return value
@@ -78,12 +99,42 @@ class MessageSerializer(serializers.ModelSerializer):
         reply_to = attrs.get('reply_to')
         if reply_to and conversation and reply_to.conversation_id != conversation.id:
             raise serializers.ValidationError({'reply_to': 'Replies must reference a message in the same conversation.'})
+
+        request = self.context.get('request')
+        uploads = list(request.FILES.getlist('files')) if request else list(attrs.get('files') or [])
+        attachment_type = attrs.get('attachment_type')
+        attachment_payload = attrs.get('attachment_payload')
+        content = attrs.get('content', getattr(instance, 'content', '') if instance else '')
+
+        if not instance and not content and not uploads and not attachment_payload:
+            raise serializers.ValidationError({'content': 'Write a message or attach something.'})
+        if uploads and not attachment_type:
+            raise serializers.ValidationError({'attachment_type': 'Choose what type of file you are attaching.'})
+        if attachment_type in {
+            MessageAttachment.Kind.CONTACT,
+            MessageAttachment.Kind.LOCATION,
+            MessageAttachment.Kind.LISTING,
+        } and not attachment_payload:
+            raise serializers.ValidationError({'attachment_payload': 'Attachment details are required.'})
+        if attachment_type in {
+            MessageAttachment.Kind.IMAGE,
+            MessageAttachment.Kind.VIDEO,
+            MessageAttachment.Kind.AUDIO,
+            MessageAttachment.Kind.DOCUMENT,
+        } and not uploads:
+            raise serializers.ValidationError({'files': 'Choose at least one file.'})
         return attrs
+
+    def create(self, validated_data):
+        for field in ('attachment_type', 'attachment_payload', 'attachment_duration_seconds', 'files'):
+            validated_data.pop(field, None)
+        return super().create(validated_data)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.deleted_at:
             data['content'] = ''
+            data['attachments'] = []
         return data
 
     def _receipt_stats(self, obj):
@@ -120,6 +171,11 @@ class MessageSerializer(serializers.ModelSerializer):
             'sender': UserSerializer(replied.sender).data,
             'content': '' if replied.deleted_at else replied.content,
             'is_deleted': bool(replied.deleted_at),
+            'attachments': [] if replied.deleted_at else MessageAttachmentSerializer(
+                replied.attachments.all(),
+                many=True,
+                context=self.context,
+            ).data,
         }
 
     def get_status(self, obj):
@@ -169,7 +225,6 @@ class ConversationSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user or request.user.is_anonymous:
             return 'Conversation'
-
         participants = obj.participants.exclude(id=request.user.id)
         if participants.count() == 1:
             user = participants.first()
@@ -177,10 +232,12 @@ class ConversationSerializer(serializers.ModelSerializer):
         return 'Group Conversation'
 
     def get_last_message(self, obj):
-        last_message = obj.messages.select_related('sender', 'reply_to', 'reply_to__sender').prefetch_related('receipts').order_by('-timestamp').first()
+        last_message = obj.messages.select_related(
+            'sender', 'reply_to', 'reply_to__sender'
+        ).prefetch_related('receipts', 'attachments', 'reply_to__attachments').order_by('-timestamp').first()
         if not last_message:
             return None
-        return MessageSerializer(last_message).data
+        return MessageSerializer(last_message, context=self.context).data
 
     def get_unread_count(self, obj):
         request = self.context.get('request')
