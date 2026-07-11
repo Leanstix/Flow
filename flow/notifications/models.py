@@ -8,6 +8,7 @@ class Notification(models.Model):
         LIKE = 'like', 'Like'
         COMMENT = 'comment', 'Comment'
         COMMENT_REPLY = 'comment_reply', 'Comment reply'
+        MENTION = 'mention', 'Mention'
         REPOST = 'repost', 'Repost'
         FRIEND_REQUEST = 'friend_request', 'Friend request'
         FRIEND_ACCEPTED = 'friend_accepted', 'Friend accepted'
