@@ -33,6 +33,10 @@ class Migration(migrations.Migration):
             ],
             options={'ordering': ['name']},
         ),
+        migrations.AlterModelOptions(
+            name='comment',
+            options={'ordering': ['created_at']},
+        ),
         migrations.AlterField(
             model_name='post',
             name='content',
