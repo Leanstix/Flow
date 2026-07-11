@@ -149,11 +149,16 @@ class PostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         metadata = validated_data.pop('_parsed_media_metadata', [])
         validated_data.pop('media_metadata', None)
-        validated_data.pop('platform', None)
+        platform = validated_data.pop('platform', None)
         request = self.context.get('request')
         post = Post.objects.create(**validated_data)
         try:
-            create_post_media(post, request, metadata)
+            create_post_media(
+                post,
+                request,
+                metadata,
+                max_video_seconds=90 if platform == 'web' else 180,
+            )
             sync_post_entities(post, post.user)
         except Exception:
             post.delete()
