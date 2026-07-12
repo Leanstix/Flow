@@ -124,11 +124,35 @@ MIDDLEWARE = [
 
 SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
-    'DEFAULT_AUTO_SCHEMA_CLASS': 'drf_yasg.inspectors.SwaggerAutoSchema',
+    'DEFAULT_AUTO_SCHEMA_CLASS': 'flow.schema.FlowAutoSchema',
+    'PERSIST_AUTH': True,
+    'REFETCH_SCHEMA_WITH_AUTH': True,
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'JWT access token. Enter `Bearer <access-token>`.',
+        },
+        'Token': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Legacy DRF token authentication. Enter `Token <token>`.',
+        },
+    },
+    'SECURITY_REQUIREMENTS': [
+        {'Bearer': []},
+    ],
 }
 
 REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
+    'HIDE_HOSTNAME': False,
+    'EXPAND_RESPONSES': '200,201',
+    'PATH_IN_MIDDLE': True,
+    'NATIVE_SCROLLBARS': True,
+    'REQUIRED_PROPS_FIRST': True,
 }
 
 ROOT_URLCONF = 'flow.urls'
