@@ -96,6 +96,54 @@ class SocialFeatureTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('media', response.data)
 
+    def test_mobile_rejects_server_side_trim_offsets(self):
+        source_video = SimpleUploadedFile(
+            'untrimmed-source.mp4',
+            b'validation-rejects-before-media-processing',
+            content_type='video/mp4',
+        )
+        response = self.client.post(
+            reverse('posts'),
+            {
+                'content': 'This source should never reach media processing',
+                'platform': 'mobile',
+                'media': [source_video],
+                'media_metadata': json.dumps([{
+                    'duration_seconds': 300,
+                    'trim_start_seconds': 30,
+                    'trim_end_seconds': 150,
+                }]),
+            },
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('media_metadata', response.data)
+        self.assertIn('export the final video on the device', str(response.data['media_metadata']))
+        self.assertFalse(Post.objects.filter(content__icontains='source should never').exists())
+
+    def test_mobile_accepts_final_export_duration_without_trim_offsets(self):
+        final_video = SimpleUploadedFile(
+            'final-export.mp4',
+            b'final-client-export',
+            content_type='video/mp4',
+        )
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse('posts'),
+                {
+                    'content': 'Final exported video',
+                    'platform': 'mobile',
+                    'media': [final_video],
+                    'media_metadata': json.dumps([{'duration_seconds': 120}]),
+                },
+                format='multipart',
+            )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        media = PostMedia.objects.get(post_id=response.data['id'])
+        self.assertEqual(float(media.duration_seconds), 120.0)
+        self.assertEqual(float(media.trim_start_seconds), 0.0)
+        self.assertIsNone(media.trim_end_seconds)
+
     def test_hashtag_suggestions_are_ranked(self):
         popular = Hashtag.objects.create(name='popular')
         post = Post.objects.create(user=self.author, content='#popular')
