@@ -132,17 +132,34 @@ class PostSerializer(serializers.ModelSerializer):
         metadata = parse_media_metadata(attrs.get('media_metadata'))
         if uploads and metadata and len(metadata) != len(uploads):
             raise serializers.ValidationError({'media_metadata': 'Provide one metadata object for every media file.'})
-        if platform == 'web':
-            for item in metadata:
-                if not isinstance(item, dict):
-                    continue
-                duration = item.get('trim_end_seconds')
-                if duration not in (None, ''):
-                    duration = float(duration) - float(item.get('trim_start_seconds') or 0)
-                else:
-                    duration = float(item.get('duration_seconds') or 0)
-                if duration > 90:
-                    raise serializers.ValidationError({'media': 'Web videos must be 90 seconds or shorter.'})
+
+        for item in metadata:
+            if not isinstance(item, dict):
+                continue
+            try:
+                duration = float(item.get('duration_seconds') or 0)
+                trim_start = float(item.get('trim_start_seconds') or 0)
+                trim_end_raw = item.get('trim_end_seconds')
+                trim_end = float(trim_end_raw) if trim_end_raw not in (None, '') else None
+            except (TypeError, ValueError) as exc:
+                raise serializers.ValidationError({
+                    'media_metadata': 'Video duration and trim values must be valid numbers.',
+                }) from exc
+
+            if platform == 'mobile' and (trim_start != 0 or trim_end is not None):
+                raise serializers.ValidationError({
+                    'media_metadata': (
+                        'Mobile clients must trim and export the final video on the device. '
+                        'Upload only the finished file with duration_seconds; do not send trim offsets.'
+                    ),
+                })
+
+            effective_duration = trim_end - trim_start if trim_end is not None else duration
+            if platform == 'web' and effective_duration > 90:
+                raise serializers.ValidationError({'media': 'Web videos must be 90 seconds or shorter.'})
+            if platform == 'mobile' and effective_duration > 180:
+                raise serializers.ValidationError({'media': 'Mobile videos must be 180 seconds or shorter.'})
+
         attrs['_parsed_media_metadata'] = metadata
         return attrs
 
