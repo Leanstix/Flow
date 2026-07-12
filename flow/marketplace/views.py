@@ -8,6 +8,10 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from messaging.models import MessageAttachment
+from messaging.serializers import ConversationSerializer, MessageSerializer
+from messaging.services import create_message_with_attachments, get_or_create_direct_conversation
+
 from .models import Advertisement, Report, SavedAdvertisement
 from .serializers import AdvertisementSerializer, AdvertisementWriteSerializer, ReportSerializer
 
@@ -20,7 +24,6 @@ class AdvertisementViewSet(viewsets.ModelViewSet):
         queryset = Advertisement.objects.select_related('user').prefetch_related('images', 'saved_by').annotate(
             saved_count=Count('saved_by', distinct=True)
         )
-
         if self.action not in {'mine'}:
             queryset = queryset.exclude(status=Advertisement.Status.ARCHIVED)
 
@@ -163,3 +166,53 @@ class AdvertisementViewSet(viewsets.ModelViewSet):
         advertisement.status = next_status
         advertisement.save(update_fields=['status', 'updated_at'])
         return Response(AdvertisementSerializer(advertisement, context={'request': request}).data)
+
+    @action(detail=True, methods=['post'])
+    def contact_seller(self, request, pk=None):
+        advertisement = self.get_object()
+        if advertisement.user_id == request.user.id:
+            raise ValidationError({'detail': 'You cannot contact yourself about your own listing.'})
+
+        content = (request.data.get('message') or '').strip()
+        if not content:
+            content = f"Hi, I'm interested in {advertisement.title}."
+        if len(content) > 5000:
+            raise ValidationError({'message': 'Message cannot exceed 5000 characters.'})
+
+        conversation, _ = get_or_create_direct_conversation(request.user, advertisement.user)
+        image_url = ''
+        first_gallery_image = advertisement.images.first()
+        source_image = first_gallery_image.image if first_gallery_image else advertisement.image
+        if source_image:
+            try:
+                image_url = request.build_absolute_uri(source_image.url)
+            except (ValueError, AttributeError):
+                image_url = ''
+
+        listing_payload = {
+            'listing_id': advertisement.id,
+            'title': advertisement.title,
+            'price': str(advertisement.price) if advertisement.price is not None else None,
+            'currency': advertisement.currency,
+            'image_url': image_url,
+            'route': f'/marketplace/{advertisement.id}',
+            'mobile_route': f'/marketplace/{advertisement.id}',
+            'status': advertisement.status,
+        }
+        message = create_message_with_attachments(
+            conversation=conversation,
+            sender=request.user,
+            content=content,
+            request=request,
+            attachment_data={
+                'attachment_type': MessageAttachment.Kind.LISTING,
+                'attachment_payload': listing_payload,
+            },
+        )
+        return Response(
+            {
+                'conversation': ConversationSerializer(conversation, context={'request': request}).data,
+                'message': MessageSerializer(message, context={'request': request}).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )

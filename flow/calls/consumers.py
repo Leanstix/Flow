@@ -41,6 +41,7 @@ class CallConsumer(AsyncJsonWebsocketConsumer):
         'new-ice-candidate',
         'hangup',
         'media-state',
+        'network-quality',
     }
 
     async def connect(self):
@@ -65,10 +66,7 @@ class CallConsumer(AsyncJsonWebsocketConsumer):
     async def receive_json(self, content, **kwargs):
         event_type = content.get('type')
         if event_type not in self.ALLOWED_EVENT_TYPES:
-            await self.send_json({
-                'type': 'error',
-                'error': 'Unsupported or missing call signalling type.',
-            })
+            await self.send_json({'type': 'error', 'error': 'Unsupported or missing call signalling type.'})
             return
 
         if event_type == 'new-ice-candidate':
@@ -122,7 +120,6 @@ class CallConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def is_room_participant(self):
         from .models import Room
-
         return Room.objects.filter(
             room_name=self.room_name,
             participants=self.user,
@@ -132,7 +129,6 @@ class CallConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def is_room_participant_id(self, user_id):
         from .models import Room
-
         return Room.objects.filter(
             room_name=self.room_name,
             participants__id=user_id,
