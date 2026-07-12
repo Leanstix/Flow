@@ -2,6 +2,7 @@ from django.test import TestCase
 
 
 HTTP_METHODS = {'get', 'post', 'put', 'patch', 'delete'}
+GENERIC_FALLBACK = 'Performs the documented Flow API operation.'
 
 
 class RichSchemaTests(TestCase):
@@ -15,7 +16,7 @@ class RichSchemaTests(TestCase):
         self.assertIn(method, self.schema['paths'][path])
         return self.schema['paths'][path][method]
 
-    def test_every_documented_http_operation_is_rich(self):
+    def test_every_documented_http_operation_is_rich_and_specific(self):
         operations = []
         for path, path_item in self.schema.get('paths', {}).items():
             for method, operation in path_item.items():
@@ -27,7 +28,9 @@ class RichSchemaTests(TestCase):
         for path, method, operation in operations:
             with self.subTest(path=path, method=method):
                 self.assertTrue(operation.get('summary'))
-                self.assertGreater(len(operation.get('description', '')), 80)
+                description = operation.get('description', '')
+                self.assertGreater(len(description), 80)
+                self.assertNotIn(GENERIC_FALLBACK, description)
                 self.assertTrue(operation.get('tags'))
                 self.assertTrue(operation.get('responses'))
 
