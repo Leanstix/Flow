@@ -28,6 +28,12 @@ def extract_mentions(text):
 
 
 def _mentioned_users(text):
+    """Resolve valid active users for legacy comment mentions.
+
+    Post mentions no longer use this implicit resolver. A post only receives
+    mention relationships supplied through the explicit mention_user_ids
+    contract and validated by resolve_selected_mentions().
+    """
     users = []
     seen = set()
     for username in extract_mentions(text):
@@ -38,10 +44,49 @@ def _mentioned_users(text):
     return users
 
 
-def sync_post_entities(post, actor):
+def resolve_selected_mentions(text, mention_user_ids, actor=None):
+    requested_ids = []
+    for value in mention_user_ids or []:
+        try:
+            user_id = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError({'mention_user_ids': 'Mention user IDs must be integers.'}) from exc
+        if user_id <= 0:
+            raise ValidationError({'mention_user_ids': 'Mention user IDs must be positive integers.'})
+        if user_id not in requested_ids:
+            requested_ids.append(user_id)
+
+    if not requested_ids:
+        return []
+    if actor and actor.pk in requested_ids:
+        raise ValidationError({'mention_user_ids': 'You cannot mention yourself in a post.'})
+
+    users_by_id = {
+        user.pk: user
+        for user in User.objects.filter(
+            pk__in=requested_ids,
+            is_active=True,
+        ).exclude(user_name__isnull=True).exclude(user_name='')
+    }
+    if len(users_by_id) != len(requested_ids):
+        raise ValidationError({'mention_user_ids': 'One or more selected users are unavailable or inactive.'})
+
+    tokens = set(extract_mentions(text))
+    resolved = []
+    for user_id in requested_ids:
+        user = users_by_id[user_id]
+        if user.user_name.lower() not in tokens:
+            raise ValidationError({
+                'mention_user_ids': f'@{user.user_name} is not present in the post content.',
+            })
+        resolved.append(user)
+    return resolved
+
+
+def sync_post_entities(post, actor, mention_user_ids=None):
     hashtags = [Hashtag.objects.get_or_create(name=name)[0] for name in extract_hashtags(post.content)]
     post.hashtags.set(hashtags)
-    mentioned = _mentioned_users(post.content)
+    mentioned = resolve_selected_mentions(post.content, mention_user_ids or [], actor=actor)
     post.mentioned_users.set(mentioned)
     actor_name = actor.user_name or actor.email
     for recipient in mentioned:
