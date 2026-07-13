@@ -1,3 +1,5 @@
+import json
+
 from rest_framework import serializers
 
 from .models import Comment, Hashtag, Like, Post, PostMedia, Report
@@ -10,6 +12,8 @@ def user_payload(user):
         'username': user.user_name,
         'user_name': user.user_name,
         'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
         'profile_picture': user.profile_picture,
     }
 
@@ -20,6 +24,24 @@ def absolute_media_url(request, value):
     if value.startswith(('http://', 'https://')) or not request:
         return value
     return request.build_absolute_uri(value)
+
+
+class MentionUserIdsField(serializers.ListField):
+    def __init__(self, **kwargs):
+        super().__init__(child=serializers.IntegerField(min_value=1), allow_empty=True, **kwargs)
+
+    def to_internal_value(self, data):
+        if data in (None, ''):
+            data = []
+        elif isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError as exc:
+                raise serializers.ValidationError('Mention user IDs must be a valid JSON array.') from exc
+        if not isinstance(data, (list, tuple)):
+            raise serializers.ValidationError('Mention user IDs must be an array.')
+        values = super().to_internal_value(data)
+        return list(dict.fromkeys(values))
 
 
 class PostMediaSerializer(serializers.ModelSerializer):
@@ -96,6 +118,7 @@ class PostSerializer(serializers.ModelSerializer):
     media = PostMediaSerializer(many=True, read_only=True)
     hashtags = serializers.SlugRelatedField(many=True, read_only=True, slug_field='name')
     mentions = serializers.SerializerMethodField()
+    mention_user_ids = MentionUserIdsField(write_only=True, required=False)
     media_metadata = serializers.CharField(write_only=True, required=False, allow_blank=True)
     platform = serializers.ChoiceField(choices=['web', 'mobile'], write_only=True, required=False)
 
@@ -103,7 +126,7 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         fields = [
             'id', 'user', 'content', 'created_at', 'reposted_from', 'media',
-            'hashtags', 'mentions', 'likes_count', 'comments_count',
+            'hashtags', 'mentions', 'mention_user_ids', 'likes_count', 'comments_count',
             'reposts_count', 'has_liked', 'media_metadata', 'platform',
         ]
         read_only_fields = [
@@ -165,6 +188,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         metadata = validated_data.pop('_parsed_media_metadata', [])
+        mention_user_ids = validated_data.pop('mention_user_ids', [])
         validated_data.pop('media_metadata', None)
         platform = validated_data.pop('platform', None)
         request = self.context.get('request')
@@ -176,7 +200,7 @@ class PostSerializer(serializers.ModelSerializer):
                 metadata,
                 max_video_seconds=90 if platform == 'web' else 180,
             )
-            sync_post_entities(post, post.user)
+            sync_post_entities(post, post.user, mention_user_ids=mention_user_ids)
         except Exception:
             post.delete()
             raise
@@ -205,6 +229,7 @@ class PostSerializer(serializers.ModelSerializer):
             'created_at': original.created_at,
             'media': PostMediaSerializer(original.media.all(), many=True, context=self.context).data,
             'hashtags': [item.name for item in original.hashtags.all()],
+            'mentions': [user_payload(user) for user in original.mentioned_users.all()],
         }
 
 
