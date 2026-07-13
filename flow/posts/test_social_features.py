@@ -11,6 +11,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from notifications.models import Notification
+from requests.models import FriendRequest
 
 from .models import Comment, Hashtag, Post, PostMedia
 
@@ -35,16 +36,20 @@ class SocialFeatureTests(APITestCase):
         )
         self.client.force_authenticate(self.author)
 
-    def test_post_indexes_hashtags_and_notifies_mentions(self):
+    def test_post_indexes_hashtags_and_notifies_explicit_mentions(self):
         response = self.client.post(
             reverse('posts'),
-            {'content': 'Building for #CampusTech with @mentioned_user'},
+            {
+                'content': 'Building for #CampusTech with @mentioned_user',
+                'mention_user_ids': [self.mentioned.id],
+            },
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         post = Post.objects.get(pk=response.data['id'])
         self.assertTrue(post.hashtags.filter(name='campustech').exists())
         self.assertTrue(post.mentioned_users.filter(pk=self.mentioned.pk).exists())
+        self.assertEqual(response.data['mentions'][0]['id'], self.mentioned.id)
         self.assertTrue(Notification.objects.filter(
             recipient=self.mentioned,
             actor=self.author,
@@ -55,6 +60,60 @@ class SocialFeatureTests(APITestCase):
         search = self.client.get(reverse('hashtag_posts', kwargs={'tag': 'campustech'}))
         self.assertEqual(search.status_code, status.HTTP_200_OK)
         self.assertEqual(search.data['results'][0]['id'], post.id)
+
+    def test_unselected_at_text_remains_plain_text(self):
+        response = self.client.post(
+            reverse('posts'),
+            {'content': 'This is plain text: @mentioned_user'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        post = Post.objects.get(pk=response.data['id'])
+        self.assertFalse(post.mentioned_users.exists())
+        self.assertEqual(response.data['mentions'], [])
+        self.assertFalse(Notification.objects.filter(
+            recipient=self.mentioned,
+            verb=Notification.Verb.MENTION,
+            target_post=post,
+        ).exists())
+
+    def test_selected_mention_must_exist_in_content(self):
+        response = self.client.post(
+            reverse('posts'),
+            {
+                'content': 'No mention token here',
+                'mention_user_ids': [self.mentioned.id],
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('mention_user_ids', response.data)
+        self.assertFalse(Post.objects.filter(content='No mention token here').exists())
+
+    def test_mention_suggestions_use_friends_then_global_active_users(self):
+        FriendRequest.objects.create(from_user=self.author, to_user=self.mentioned, accepted=True)
+        global_user = User.objects.create_user(
+            email='global@example.com', university_id='SOC003',
+            password='pass12345', user_name='global_match', is_active=True,
+        )
+        User.objects.create_user(
+            email='inactive@example.com', university_id='SOC004',
+            password='pass12345', user_name='inactive_match', is_active=False,
+        )
+
+        friends_response = self.client.get(reverse('search-users'), {'context': 'mention', 'q': ''})
+        self.assertEqual(friends_response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['id'] for item in friends_response.data], [self.mentioned.id])
+        self.assertTrue(friends_response.data[0]['is_friends'])
+
+        global_response = self.client.get(reverse('search-users'), {'context': 'mention', 'q': 'global'})
+        self.assertEqual(global_response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['id'] for item in global_response.data], [global_user.id])
+        self.assertFalse(global_response.data[0]['is_friends'])
+
+        inactive_response = self.client.get(reverse('search-users'), {'context': 'mention', 'q': 'inactive'})
+        self.assertEqual(inactive_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(inactive_response.data, [])
 
     def test_replies_can_continue_without_a_depth_limit(self):
         post = Post.objects.create(user=self.author, content='Thread')
