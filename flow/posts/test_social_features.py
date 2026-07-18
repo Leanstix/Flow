@@ -61,6 +61,32 @@ class SocialFeatureTests(APITestCase):
         self.assertEqual(search.status_code, status.HTTP_200_OK)
         self.assertEqual(search.data['results'][0]['id'], post.id)
 
+    def test_multipart_post_decodes_json_mention_ids(self):
+        response = self.client.post(
+            reverse('posts'),
+            {
+                'content': 'Building with @mentioned_user',
+                'mention_user_ids': json.dumps([self.mentioned.id]),
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['mentions'][0]['id'], self.mentioned.id)
+
+    def test_multipart_post_accepts_empty_json_mention_ids(self):
+        response = self.client.post(
+            reverse('posts'),
+            {
+                'content': 'A post without mentions',
+                'mention_user_ids': json.dumps([]),
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['mentions'], [])
+
     def test_unselected_at_text_remains_plain_text(self):
         response = self.client.post(
             reverse('posts'),

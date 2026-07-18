@@ -33,6 +33,16 @@ class MentionUserIdsField(serializers.ListField):
     def to_internal_value(self, data):
         if data in (None, ''):
             data = []
+        elif (
+            isinstance(data, (list, tuple))
+            and len(data) == 1
+            and isinstance(data[0], str)
+            and data[0].strip().startswith('[')
+        ):
+            try:
+                data = json.loads(data[0])
+            except json.JSONDecodeError as exc:
+                raise serializers.ValidationError('Mention user IDs must be a valid JSON array.') from exc
         elif isinstance(data, str):
             try:
                 data = json.loads(data)
