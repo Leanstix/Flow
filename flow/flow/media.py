@@ -137,6 +137,7 @@ def store_upload(
                 'width': 720,
                 'crop': 'limit',
                 'video_codec': 'auto',
+                'audio_codec': 'aac',
                 'quality': 'auto:eco',
                 'fetch_format': 'auto',
             }
