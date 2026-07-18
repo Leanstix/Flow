@@ -2,6 +2,8 @@ import json
 
 from rest_framework import serializers
 
+from flow.media import ensure_video_delivery_url
+
 from .models import Comment, Hashtag, Like, Post, PostMedia, Report
 from .services import create_post_media, parse_media_metadata, sync_post_entities
 
@@ -68,7 +70,8 @@ class PostMediaSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_url(self, obj):
-        return absolute_media_url(self.context.get('request'), obj.url)
+        value = ensure_video_delivery_url(obj.url) if obj.media_type == PostMedia.MediaType.VIDEO else obj.url
+        return absolute_media_url(self.context.get('request'), value)
 
     def get_thumbnail_url(self, obj):
         return absolute_media_url(self.context.get('request'), obj.thumbnail_url)

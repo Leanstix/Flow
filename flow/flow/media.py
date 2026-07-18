@@ -33,6 +33,15 @@ DOCUMENT_TYPES = {
 }
 
 
+def ensure_video_delivery_url(value):
+    """Keep extensionless Cloudinary video URLs from becoming silent animated images."""
+    if not value or 'res.cloudinary.com' not in value or '/video/upload/' not in value:
+        return value
+    if 'f_auto:video' in value:
+        return value
+    return value.replace('f_auto,', 'f_auto:video,', 1).replace('f_auto/', 'f_auto:video/', 1)
+
+
 def upload_mime_type(upload):
     value = (getattr(upload, 'content_type', '') or '').lower().strip()
     if value:
@@ -137,9 +146,8 @@ def store_upload(
                 'width': 720,
                 'crop': 'limit',
                 'video_codec': 'auto',
-                'audio_codec': 'aac',
                 'quality': 'auto:eco',
-                'fetch_format': 'auto',
+                'fetch_format': 'auto:video',
             }
             if trim_start:
                 transform['start_offset'] = trim_start
